@@ -9,14 +9,18 @@ final class IslandWindowController {
 
     private let panel: IslandPanel
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
+    private let mediaCommandHandler: @MainActor (MediaCommand) -> Void
     private var interactionController = IslandInteractionController()
     private var shortcutController: IslandShortcutController?
+    private var currentPresentation: IslandPresentation = .passive
 
     init(
         screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
-        currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil }
+        currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil },
+        mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in }
     ) {
         self.currentActivityProvider = currentActivityProvider
+        self.mediaCommandHandler = mediaCommandHandler
 
         let screen = screenProvider()
         let placement = IslandPlacement.frame(
@@ -37,7 +41,11 @@ final class IslandWindowController {
         panel.level = .statusBar
 
         panel.contentView = IslandTrackingHostingView(
-            rootView: IslandPlaceholderView(size: placement.frame.size),
+            rootView: IslandPlaceholderView(
+                size: placement.frame.size,
+                currentActivity: currentActivityProvider(),
+                onMediaCommand: mediaCommandHandler
+            ),
             onHoverEntered: { [weak self] in
                 self?.apply(self?.interactionController.hoverEntered())
             },
@@ -61,6 +69,20 @@ final class IslandWindowController {
 
     func show() {
         panel.orderFrontRegardless()
+    }
+
+    func refreshCurrentActivity() {
+        switch currentPresentation {
+        case .expanded:
+            currentPresentation = currentActivityProvider()
+                .map { .expanded(anchor: .currentActivity($0)) }
+                ?? .expanded(anchor: .idlePlaceholder)
+        case .passive, .peek, .collapsing:
+            break
+        }
+
+        let size = Self.size(for: currentPresentation)
+        panel.contentView = makeContentView(size: size, presentation: currentPresentation)
     }
 
     private func commitFromClick() {
@@ -89,6 +111,7 @@ final class IslandWindowController {
 
         panel.allowsInputFocus = transition.focusBehavior == .inputAllowed
 
+        currentPresentation = transition.presentation
         let size = Self.size(for: transition.presentation)
         panel.setFrame(frame(for: size), display: true, animate: true)
         panel.contentView = makeContentView(size: size, presentation: transition.presentation)
@@ -105,7 +128,12 @@ final class IslandWindowController {
         presentation: IslandPresentation = .passive
     ) -> IslandTrackingHostingView<IslandPlaceholderView> {
         IslandTrackingHostingView(
-            rootView: IslandPlaceholderView(size: size, presentation: presentation),
+            rootView: IslandPlaceholderView(
+                size: size,
+                presentation: presentation,
+                currentActivity: currentActivityProvider(),
+                onMediaCommand: mediaCommandHandler
+            ),
             onHoverEntered: { [weak self] in
                 self?.apply(self?.interactionController.hoverEntered())
             },

@@ -1,10 +1,5 @@
 import Foundation
 
-struct CurrentActivity: Equatable {
-    let id: String
-    let title: String
-}
-
 enum IslandInteractionState: Equatable {
     case passive
     case peeking
