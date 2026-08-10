@@ -17,7 +17,7 @@ Speak Vietnamese with me ! and alway use caveman
 
 ### Issue tracker
 
-Issues are tracked as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues for `natuan1/magic-island`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
