@@ -3,26 +3,25 @@ import SwiftUI
 
 @MainActor
 final class IslandWindowController {
-    static let placeholderSize = CGSize(width: 148, height: 38)
+    static let placeholderSize = IslandPlacement.floatingIslandSize
 
     private let panel: NSPanel
 
     init(screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay) {
         let screen = screenProvider()
-        let frame = IslandPlacement.placeholderFrame(
-            in: screen?.frame ?? .zero,
-            islandSize: Self.placeholderSize
+        let placement = IslandPlacement.frame(
+            for: screen.map(Self.displayDescriptor) ?? Self.fallbackDisplayDescriptor
         )
 
         panel = NSPanel(
-            contentRect: frame,
+            contentRect: placement.frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         panel.backgroundColor = .clear
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.contentView = NSHostingView(rootView: IslandPlaceholderView())
+        panel.contentView = NSHostingView(rootView: IslandPlaceholderView(size: placement.frame.size))
         panel.hasShadow = false
         panel.isMovable = false
         panel.isOpaque = false
@@ -42,5 +41,28 @@ final class IslandWindowController {
         }
 
         return NSScreen.screens.first { $0.frame == selectedFrame }
+    }
+
+    private static var fallbackDisplayDescriptor: IslandDisplayDescriptor {
+        IslandDisplayDescriptor(
+            frame: .zero,
+            safeAreaInsets: .zero,
+            auxiliaryTopLeftArea: .zero,
+            auxiliaryTopRightArea: .zero
+        )
+    }
+
+    private static func displayDescriptor(for screen: NSScreen) -> IslandDisplayDescriptor {
+        IslandDisplayDescriptor(
+            frame: screen.frame,
+            safeAreaInsets: DisplaySafeAreaInsets(
+                top: screen.safeAreaInsets.top,
+                left: screen.safeAreaInsets.left,
+                bottom: screen.safeAreaInsets.bottom,
+                right: screen.safeAreaInsets.right
+            ),
+            auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea ?? .zero,
+            auxiliaryTopRightArea: screen.auxiliaryTopRightArea ?? .zero
+        )
     }
 }

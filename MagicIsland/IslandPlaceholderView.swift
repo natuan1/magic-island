@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct IslandPlaceholderView: View {
+    let size: CGSize
+
+    init(size: CGSize = IslandWindowController.placeholderSize) {
+        self.size = size
+    }
+
     var body: some View {
         ZStack {
             Capsule(style: .continuous)
@@ -21,8 +27,7 @@ struct IslandPlaceholderView: View {
                     .frame(width: 54, height: 6)
             }
         }
-        .frame(width: IslandWindowController.placeholderSize.width,
-               height: IslandWindowController.placeholderSize.height)
+        .frame(width: size.width, height: size.height)
         .accessibilityLabel("Magic Island placeholder")
     }
 }
