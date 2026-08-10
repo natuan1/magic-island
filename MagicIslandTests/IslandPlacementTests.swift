@@ -66,4 +66,49 @@ final class IslandPlacementTests: XCTestCase {
 
         XCTAssertEqual(frame, CGRect(x: -830, y: 976, width: 148, height: 38))
     }
+
+    func testSelectedDisplayWinsWhenAvailable() {
+        let primaryDisplay = display(id: 1, frame: CGRect(x: 0, y: 0, width: 1728, height: 1117))
+        let externalDisplay = display(id: 2, frame: CGRect(x: -1512, y: 40, width: 1512, height: 982))
+
+        let selectedDisplay = IslandDisplaySelection.selectedDisplay(
+            from: [primaryDisplay, externalDisplay],
+            selectedDisplayID: 2,
+            primaryDisplayID: 1
+        )
+
+        XCTAssertEqual(selectedDisplay, externalDisplay)
+    }
+
+    func testMissingSelectedDisplayFallsBackToPrimaryDisplay() {
+        let primaryDisplay = display(id: 1, frame: CGRect(x: 0, y: 0, width: 1728, height: 1117))
+        let externalDisplay = display(id: 2, frame: CGRect(x: -1512, y: 40, width: 1512, height: 982))
+
+        let selectedDisplay = IslandDisplaySelection.selectedDisplay(
+            from: [primaryDisplay, externalDisplay],
+            selectedDisplayID: 7,
+            primaryDisplayID: 1
+        )
+
+        XCTAssertEqual(selectedDisplay, primaryDisplay)
+    }
+
+    func testIslandFrameIsClampedToVisibleDisplayBounds() {
+        let proposedFrame = CGRect(x: 945, y: 754, width: 148, height: 38)
+        let visibleBounds = CGRect(x: 0, y: 0, width: 1000, height: 760)
+
+        let frame = IslandPlacement.clampedFrame(proposedFrame, to: visibleBounds)
+
+        XCTAssertEqual(frame, CGRect(x: 852, y: 722, width: 148, height: 38))
+    }
+
+    private func display(id: UInt32, frame: CGRect) -> IslandDisplayDescriptor {
+        IslandDisplayDescriptor(
+            id: id,
+            frame: frame,
+            safeAreaInsets: .zero,
+            auxiliaryTopLeftArea: .zero,
+            auxiliaryTopRightArea: .zero
+        )
+    }
 }

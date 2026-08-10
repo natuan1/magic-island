@@ -2,26 +2,34 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class IslandWindowController {
+final class IslandWindowController: NSObject {
     static let placeholderSize = IslandPlacement.floatingIslandSize
     private static let peekSize = CGSize(width: 184, height: 46)
     private static let expandedSize = CGSize(width: 420, height: 220)
 
-    private let panel: IslandPanel
+    private var panel: IslandPanel!
+    private let screenProvider: @MainActor () -> [NSScreen]
+    private let selectedDisplayID: UInt32?
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
     private var interactionController = IslandInteractionController()
     private var shortcutController: IslandShortcutController?
+    private var currentPresentation: IslandPresentation = .passive
 
     init(
-        screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
+        screenProvider: @escaping @MainActor () -> [NSScreen] = { NSScreen.screens },
+        selectedDisplayID: UInt32? = nil,
         currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil }
     ) {
+        self.screenProvider = screenProvider
+        self.selectedDisplayID = selectedDisplayID
         self.currentActivityProvider = currentActivityProvider
+        super.init()
 
-        let screen = screenProvider()
-        let placement = IslandPlacement.frame(
-            for: screen.map(Self.displayDescriptor) ?? Self.fallbackDisplayDescriptor
+        let display = Self.selectedDisplay(
+            from: screenProvider(),
+            selectedDisplayID: selectedDisplayID
         )
+        let placement = IslandPlacement.frame(for: display ?? Self.fallbackDisplayDescriptor)
 
         panel = IslandPanel(
             contentRect: placement.frame,
@@ -57,10 +65,41 @@ final class IslandWindowController {
                 self?.collapse()
             }
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func show() {
         panel.orderFrontRegardless()
+    }
+
+    func refreshPlacement(animated: Bool = false) {
+        let display = Self.selectedDisplay(
+            from: screenProvider(),
+            selectedDisplayID: selectedDisplayID
+        ) ?? Self.fallbackDisplayDescriptor
+        let placement = IslandPlacement.frame(for: display)
+        let size = Self.size(for: currentPresentation)
+        let nextFrame = IslandPlacement.clampedFrame(
+            frame(for: size, anchoredAt: placement.frame),
+            to: display.visibleFrame
+        )
+
+        panel.setFrame(nextFrame, display: true, animate: animated)
+        panel.contentView = makeContentView(size: size, presentation: currentPresentation)
+    }
+
+    @objc private func screenParametersDidChange() {
+        refreshPlacement(animated: true)
     }
 
     private func commitFromClick() {
@@ -89,6 +128,7 @@ final class IslandWindowController {
 
         panel.allowsInputFocus = transition.focusBehavior == .inputAllowed
 
+        currentPresentation = transition.presentation
         let size = Self.size(for: transition.presentation)
         panel.setFrame(frame(for: size), display: true, animate: true)
         panel.contentView = makeContentView(size: size, presentation: transition.presentation)
@@ -119,7 +159,10 @@ final class IslandWindowController {
     }
 
     private func frame(for size: CGSize) -> CGRect {
-        let currentFrame = panel.frame
+        frame(for: size, anchoredAt: panel.frame)
+    }
+
+    private func frame(for size: CGSize, anchoredAt currentFrame: CGRect) -> CGRect {
         return CGRect(
             x: currentFrame.midX - (size.width / 2),
             y: currentFrame.maxY - size.height,
@@ -139,20 +182,22 @@ final class IslandWindowController {
         }
     }
 
-    private static func primaryDisplay() -> NSScreen? {
-        guard let selectedFrame = IslandDisplaySelection.primaryDisplayFrame(
-            from: NSScreen.screens.map(\.frame),
-            mainScreenFrame: NSScreen.main?.frame
-        ) else {
-            return nil
-        }
-
-        return NSScreen.screens.first { $0.frame == selectedFrame }
+    private static func selectedDisplay(
+        from screens: [NSScreen],
+        selectedDisplayID: UInt32?
+    ) -> IslandDisplayDescriptor? {
+        IslandDisplaySelection.selectedDisplay(
+            from: screens.map(displayDescriptor),
+            selectedDisplayID: selectedDisplayID,
+            primaryDisplayID: displayID(for: NSScreen.main)
+        )
     }
 
     private static var fallbackDisplayDescriptor: IslandDisplayDescriptor {
         IslandDisplayDescriptor(
+            id: nil,
             frame: .zero,
+            visibleFrame: .zero,
             safeAreaInsets: .zero,
             auxiliaryTopLeftArea: .zero,
             auxiliaryTopRightArea: .zero
@@ -161,7 +206,9 @@ final class IslandWindowController {
 
     private static func displayDescriptor(for screen: NSScreen) -> IslandDisplayDescriptor {
         IslandDisplayDescriptor(
+            id: displayID(for: screen),
             frame: screen.frame,
+            visibleFrame: screen.visibleFrame,
             safeAreaInsets: DisplaySafeAreaInsets(
                 top: screen.safeAreaInsets.top,
                 left: screen.safeAreaInsets.left,
@@ -171,6 +218,17 @@ final class IslandWindowController {
             auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea ?? .zero,
             auxiliaryTopRightArea: screen.auxiliaryTopRightArea ?? .zero
         )
+    }
+
+    private static func displayID(for screen: NSScreen?) -> UInt32? {
+        guard
+            let screen,
+            let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else {
+            return nil
+        }
+
+        return screenNumber.uint32Value
     }
 }
 
