@@ -13,6 +13,15 @@ If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is 
 
 Speak Vietnamese with me ! and alway use caveman
 
+## Learning rules
+
+- When a build failure, review finding, or missed acceptance criterion is preventable by process, add one durable rule to `AGENTS.md` or the narrowest relevant agent doc in the same change.
+- Keep new rules specific to the failure mode. Prefer "Before commit, check `git status --short` includes expected new files" over broad advice like "be careful".
+- Before committing issue work, verify untracked files. New docs, manual notes, tests, and fixtures must be staged intentionally or deleted intentionally.
+- For macOS display geometry, prefer public `NSScreen` geometry (`safeAreaInsets`, `auxiliaryTopLeftArea`, `auxiliaryTopRightArea`) over Mac model-name checks.
+- Treat SDK-imported optional AppKit geometry as optional even when Objective-C headers look non-optional; coalesce missing auxiliary areas to `.zero`.
+- When adding AppKit subclasses or event monitor wrappers under Swift 6, account for required superclass initializers and non-Sendable monitor tokens before the first build.
+
 ## Agent skills
 
 ### Issue tracker

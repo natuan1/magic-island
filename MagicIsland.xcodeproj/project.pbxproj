@@ -17,6 +17,9 @@
 		3A0000010000000000000009 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000043 /* AppIntents.framework */; };
 		3A000001000000000000001A /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000043 /* AppIntents.framework */; };
 		3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000045 /* IslandDisplaySelection.swift */; };
+		3A000001000000000000001C /* IslandInteractionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000046 /* IslandInteractionController.swift */; };
+		3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000047 /* IslandInteractionControllerTests.swift */; };
+		3A000001000000000000001E /* IslandShortcutController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000048 /* IslandShortcutController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +45,9 @@
 		3A0000010000000000000019 /* IslandWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandWindowController.swift; sourceTree = "<group>"; };
 		3A0000010000000000000043 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		3A0000010000000000000045 /* IslandDisplaySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandDisplaySelection.swift; sourceTree = "<group>"; };
+		3A0000010000000000000046 /* IslandInteractionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandInteractionController.swift; sourceTree = "<group>"; };
+		3A0000010000000000000047 /* IslandInteractionControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandInteractionControllerTests.swift; sourceTree = "<group>"; };
+		3A0000010000000000000048 /* IslandShortcutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandShortcutController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,6 +89,8 @@
 				3A0000010000000000000013 /* StatusBarController.swift */,
 				3A0000010000000000000045 /* IslandDisplaySelection.swift */,
 				3A0000010000000000000017 /* IslandPlacement.swift */,
+				3A0000010000000000000046 /* IslandInteractionController.swift */,
+				3A0000010000000000000048 /* IslandShortcutController.swift */,
 				3A0000010000000000000018 /* IslandPlaceholderView.swift */,
 				3A0000010000000000000019 /* IslandWindowController.swift */,
 			);
@@ -93,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				3A0000010000000000000014 /* IslandPlacementTests.swift */,
+				3A0000010000000000000047 /* IslandInteractionControllerTests.swift */,
 			);
 			path = MagicIslandTests;
 			sourceTree = "<group>";
@@ -218,6 +227,8 @@
 				3A0000010000000000000003 /* StatusBarController.swift in Sources */,
 				3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */,
 				3A0000010000000000000006 /* IslandPlacement.swift in Sources */,
+				3A000001000000000000001C /* IslandInteractionController.swift in Sources */,
+				3A000001000000000000001E /* IslandShortcutController.swift in Sources */,
 				3A0000010000000000000007 /* IslandPlaceholderView.swift in Sources */,
 				3A0000010000000000000008 /* IslandWindowController.swift in Sources */,
 			);
@@ -228,6 +239,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3A0000010000000000000004 /* IslandPlacementTests.swift in Sources */,
+				3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
