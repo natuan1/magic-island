@@ -20,6 +20,7 @@ Speak Vietnamese with me ! and alway use caveman
 - Before committing issue work, verify untracked files. New docs, manual notes, tests, and fixtures must be staged intentionally or deleted intentionally.
 - For macOS display geometry, prefer public `NSScreen` geometry (`safeAreaInsets`, `auxiliaryTopLeftArea`, `auxiliaryTopRightArea`) over Mac model-name checks.
 - Treat SDK-imported optional AppKit geometry as optional even when Objective-C headers look non-optional; coalesce missing auxiliary areas to `.zero`.
+- When adding AppKit subclasses or event monitor wrappers under Swift 6, account for required superclass initializers and non-Sendable monitor tokens before the first build.
 
 ## Agent skills
 
