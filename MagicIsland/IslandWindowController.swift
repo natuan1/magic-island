@@ -8,6 +8,7 @@ final class IslandWindowController {
     private static let expandedSize = CGSize(width: 420, height: 220)
 
     private let panel: IslandPanel
+    private let settingsStore: SettingsStore
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
     private let mediaCommandHandler: @MainActor (MediaCommand) -> Void
     private var interactionController = IslandInteractionController()
@@ -15,14 +16,16 @@ final class IslandWindowController {
     private var currentPresentation: IslandPresentation = .passive
 
     init(
+        settingsStore: SettingsStore = SettingsStore(),
         screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
         currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil },
         mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in }
     ) {
+        self.settingsStore = settingsStore
         self.currentActivityProvider = currentActivityProvider
         self.mediaCommandHandler = mediaCommandHandler
 
-        let screen = screenProvider()
+        let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? screenProvider()
         let placement = IslandPlacement.frame(
             for: screen.map(Self.displayDescriptor) ?? Self.fallbackDisplayDescriptor
         )
@@ -46,6 +49,7 @@ final class IslandWindowController {
                 currentActivity: currentActivityProvider(),
                 onMediaCommand: mediaCommandHandler
             ),
+            hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
                 self?.apply(self?.interactionController.hoverEntered())
             },
@@ -82,6 +86,25 @@ final class IslandWindowController {
         }
 
         let size = Self.size(for: currentPresentation)
+        panel.contentView = makeContentView(size: size, presentation: currentPresentation)
+    }
+
+    func settingsChanged() {
+        let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? Self.primaryDisplay()
+        let placement = IslandPlacement.frame(
+            for: screen.map(Self.displayDescriptor) ?? Self.fallbackDisplayDescriptor
+        )
+        let size = Self.size(for: currentPresentation)
+        panel.setFrame(
+            CGRect(
+                x: placement.frame.midX - (size.width / 2),
+                y: placement.frame.maxY - size.height,
+                width: size.width,
+                height: size.height
+            ),
+            display: true,
+            animate: true
+        )
         panel.contentView = makeContentView(size: size, presentation: currentPresentation)
     }
 
@@ -134,6 +157,7 @@ final class IslandWindowController {
                 currentActivity: currentActivityProvider(),
                 onMediaCommand: mediaCommandHandler
             ),
+            hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
                 self?.apply(self?.interactionController.hoverEntered())
             },
@@ -178,6 +202,16 @@ final class IslandWindowController {
         return NSScreen.screens.first { $0.frame == selectedFrame }
     }
 
+    private static func selectedDisplay(settingsStore: SettingsStore) -> NSScreen? {
+        guard case .specificDisplay(let selectedDisplayID) = settingsStore.displayPreference else {
+            return nil
+        }
+
+        return NSScreen.screens.first { screen in
+            screen.displayID == selectedDisplayID
+        }
+    }
+
     private static var fallbackDisplayDescriptor: IslandDisplayDescriptor {
         IslandDisplayDescriptor(
             frame: .zero,
@@ -215,16 +249,20 @@ private final class IslandPanel: NSPanel {
 }
 
 private final class IslandTrackingHostingView<Content: View>: NSHostingView<Content> {
+    private let hoverDelay: TimeInterval
     private let onHoverEntered: @MainActor () -> Void
     private let onHoverExited: @MainActor () -> Void
     private let onCommit: @MainActor () -> Void
+    private var hoverTimer: Timer?
 
     init(
         rootView: Content,
+        hoverDelay: TimeInterval,
         onHoverEntered: @escaping @MainActor () -> Void,
         onHoverExited: @escaping @MainActor () -> Void,
         onCommit: @escaping @MainActor () -> Void
     ) {
+        self.hoverDelay = hoverDelay
         self.onHoverEntered = onHoverEntered
         self.onHoverExited = onHoverExited
         self.onCommit = onCommit
@@ -232,6 +270,7 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
     }
 
     required init(rootView: Content) {
+        hoverDelay = 0
         onHoverEntered = {}
         onHoverExited = {}
         onCommit = {}
@@ -256,14 +295,34 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
     }
 
     override func mouseEntered(with event: NSEvent) {
-        onHoverEntered()
+        hoverTimer?.invalidate()
+
+        if hoverDelay <= 0 {
+            onHoverTimerFired()
+            return
+        }
+
+        hoverTimer = Timer.scheduledTimer(
+            timeInterval: hoverDelay,
+            target: self,
+            selector: #selector(onHoverTimerFired),
+            userInfo: nil,
+            repeats: false
+        )
     }
 
     override func mouseExited(with event: NSEvent) {
+        hoverTimer?.invalidate()
+        hoverTimer = nil
         onHoverExited()
     }
 
     override func mouseDown(with event: NSEvent) {
         onCommit()
+    }
+
+    @objc private func onHoverTimerFired() {
+        hoverTimer = nil
+        onHoverEntered()
     }
 }
