@@ -104,7 +104,12 @@ final class IslandWindowController {
             }
         )
 
+        configureShortcutController()
+    }
+
+    private func configureShortcutController() {
         shortcutController = IslandShortcutController(
+            shortcut: settingsStore.expansionShortcut,
             onShortcut: { [weak self] in
                 self?.commitFromShortcut()
             },
@@ -138,6 +143,18 @@ final class IslandWindowController {
         apply(transition)
     }
 
+    func showFeature(_ featureID: FeatureID) {
+        switch featureID {
+        case .media:
+            selectedHomeDestination = .media
+        case .fileShelf:
+            selectedHomeDestination = .fileShelf
+        case .clipboardHistory:
+            selectedHomeDestination = .clipboardHistory
+        }
+        apply(interactionController.click(currentActivity: currentActivityProvider()))
+    }
+
     func settingsChanged() {
         let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? Self.primaryDisplay()
         let placement = IslandPlacement.frame(
@@ -154,6 +171,7 @@ final class IslandWindowController {
             display: true,
             animate: true
         )
+        configureShortcutController()
         panel.contentView = makeContentView(size: size, presentation: currentPresentation)
     }
 

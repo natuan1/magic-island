@@ -5,14 +5,17 @@ import SwiftUI
 final class SettingsWindowController {
     private let settingsStore: SettingsStore
     private let onSettingsChanged: @MainActor () -> Void
+    private let onCheckUpdates: @MainActor () -> Void
     private var window: NSWindow?
 
     init(
         settingsStore: SettingsStore,
-        onSettingsChanged: @escaping @MainActor () -> Void
+        onSettingsChanged: @escaping @MainActor () -> Void,
+        onCheckUpdates: @escaping @MainActor () -> Void = {}
     ) {
         self.settingsStore = settingsStore
         self.onSettingsChanged = onSettingsChanged
+        self.onCheckUpdates = onCheckUpdates
     }
 
     func show() {
@@ -20,10 +23,11 @@ final class SettingsWindowController {
             let view = SettingsView(
                 settingsStore: settingsStore,
                 displays: DisplayOption.currentDisplays(),
-                onSettingsChanged: onSettingsChanged
+                onSettingsChanged: onSettingsChanged,
+                onCheckUpdates: onCheckUpdates
             )
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 420, height: 460),
+                contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false
@@ -66,6 +70,7 @@ private struct SettingsView: View {
     let settingsStore: SettingsStore
     let displays: [DisplayOption]
     let onSettingsChanged: () -> Void
+    let onCheckUpdates: () -> Void
 
     @State private var mediaEnabled: Bool
     @State private var fileShelfEnabled: Bool
@@ -73,21 +78,27 @@ private struct SettingsView: View {
     @State private var hoverDelay: Double
     @State private var displayRawValue: String
     @State private var clipboardRetentionDays: Int
+    @State private var launchAtLoginEnabled: Bool
+    @State private var expansionShortcutRawValue: String
 
     init(
         settingsStore: SettingsStore,
         displays: [DisplayOption],
-        onSettingsChanged: @escaping () -> Void
+        onSettingsChanged: @escaping () -> Void,
+        onCheckUpdates: @escaping () -> Void
     ) {
         self.settingsStore = settingsStore
         self.displays = displays
         self.onSettingsChanged = onSettingsChanged
+        self.onCheckUpdates = onCheckUpdates
         _mediaEnabled = State(initialValue: settingsStore.isFeatureEnabled(.media))
         _fileShelfEnabled = State(initialValue: settingsStore.isFeatureEnabled(.fileShelf))
         _clipboardHistoryEnabled = State(initialValue: settingsStore.isFeatureEnabled(.clipboardHistory))
         _hoverDelay = State(initialValue: settingsStore.hoverDelay)
         _displayRawValue = State(initialValue: settingsStore.displayPreference.rawValue)
         _clipboardRetentionDays = State(initialValue: settingsStore.clipboardRetentionDays)
+        _launchAtLoginEnabled = State(initialValue: settingsStore.launchAtLoginEnabled)
+        _expansionShortcutRawValue = State(initialValue: settingsStore.expansionShortcut.rawValue)
     }
 
     var body: some View {
@@ -99,6 +110,7 @@ private struct SettingsView: View {
             placementSection
             clipboardSection
             shortcutsSection
+            startupSection
             updaterSection
             permissionSection
 
@@ -168,13 +180,30 @@ private struct SettingsView: View {
     }
 
     private var shortcutsSection: some View {
-        Button("Shortcuts: Option-Space") {}
-            .disabled(true)
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Shortcuts")
+            Picker("Show Island", selection: $expansionShortcutRawValue) {
+                ForEach(ExpansionShortcut.allCases) { shortcut in
+                    Text(shortcut.title).tag(shortcut.rawValue)
+                }
+            }
+            .onChange(of: expansionShortcutRawValue) { _, value in
+                settingsStore.expansionShortcut = ExpansionShortcut(rawValue: value) ?? .commandOptionSpace
+                onSettingsChanged()
+            }
+        }
+    }
+
+    private var startupSection: some View {
+        Toggle("Launch at Login", isOn: $launchAtLoginEnabled)
+            .onChange(of: launchAtLoginEnabled) { _, value in
+                settingsStore.launchAtLoginEnabled = value
+                onSettingsChanged()
+            }
     }
 
     private var updaterSection: some View {
-        Button("Check for Updates") {}
-            .disabled(true)
+        Button("Check for Updates", action: onCheckUpdates)
     }
 
     private var permissionSection: some View {
