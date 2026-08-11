@@ -22,6 +22,7 @@ Speak Vietnamese with me ! and alway use caveman
 - Treat SDK-imported optional AppKit geometry as optional even when Objective-C headers look non-optional; coalesce missing auxiliary areas to `.zero`.
 - When adding AppKit subclasses or event monitor wrappers under Swift 6, account for required superclass initializers and non-Sendable monitor tokens before the first build.
 - For app-owned repeating `Timer`s under Swift 6, prefer target/selector timers over closure timers that capture `self`.
+- When invalidating AppKit-owned `Timer`s from `deinit` under Swift 6, account for nonisolated deinitializers before the first build.
 - When AppDelegate starts feature lifecycles, skip background macOS integrations under `XCTestConfigurationFilePath` so unit test hosts do not poll AppleScript, pasteboard, or permissions.
 
 ## Agent skills

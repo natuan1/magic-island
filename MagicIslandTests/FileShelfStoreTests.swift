@@ -37,4 +37,23 @@ final class FileShelfStoreTests: XCTestCase {
 
         XCTAssertFalse(item.isAvailable(fileExists: { _ in false }))
     }
+
+    func testRepeatedFileDropsAppendReferencesWithoutReplacingExistingItems() {
+        let store = FileShelfStore()
+        var nextID = 0
+
+        for index in 0..<1_000 {
+            store.addFileReferences(
+                [URL(fileURLWithPath: "/tmp/drop-\(index).txt")],
+                idProvider: {
+                    nextID += 1
+                    return UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", nextID))!
+                }
+            )
+        }
+
+        XCTAssertEqual(store.items.count, 1_000)
+        XCTAssertEqual(store.items.first?.name, "drop-0.txt")
+        XCTAssertEqual(store.items.last?.name, "drop-999.txt")
+    }
 }

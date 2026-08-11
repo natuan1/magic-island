@@ -43,6 +43,8 @@
 		3A0000070000000000000002 /* ProductShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000070000000000000012 /* ProductShellTests.swift */; };
 		3A0000080000000000000001 /* PermissionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000080000000000000011 /* PermissionCenter.swift */; };
 		3A0000080000000000000002 /* PermissionCenterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000080000000000000012 /* PermissionCenterTests.swift */; };
+		3A0000090000000000000001 /* IslandMotionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000090000000000000011 /* IslandMotionPolicy.swift */; };
+		3A0000090000000000000002 /* IslandMotionPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000090000000000000012 /* IslandMotionPolicyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +96,8 @@
 		3A0000070000000000000012 /* ProductShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductShellTests.swift; sourceTree = "<group>"; };
 		3A0000080000000000000011 /* PermissionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionCenter.swift; sourceTree = "<group>"; };
 		3A0000080000000000000012 /* PermissionCenterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionCenterTests.swift; sourceTree = "<group>"; };
+		3A0000090000000000000011 /* IslandMotionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMotionPolicy.swift; sourceTree = "<group>"; };
+		3A0000090000000000000012 /* IslandMotionPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMotionPolicyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -149,6 +153,7 @@
 				3A0000010000000000000045 /* IslandDisplaySelection.swift */,
 				3A0000010000000000000017 /* IslandPlacement.swift */,
 				3A0000010000000000000046 /* IslandInteractionController.swift */,
+				3A0000090000000000000011 /* IslandMotionPolicy.swift */,
 				3A0000010000000000000048 /* IslandShortcutController.swift */,
 				3A0000010000000000000018 /* IslandPlaceholderView.swift */,
 				3A0000010000000000000019 /* IslandWindowController.swift */,
@@ -161,6 +166,7 @@
 			children = (
 				3A0000010000000000000014 /* IslandPlacementTests.swift */,
 				3A0000010000000000000047 /* IslandInteractionControllerTests.swift */,
+				3A0000090000000000000012 /* IslandMotionPolicyTests.swift */,
 				3A0000010000000000000055 /* ActivityEngineTests.swift */,
 				3A0000010000000000000057 /* MediaFeatureTests.swift */,
 				3A0000050000000000000012 /* TimerFeatureTests.swift */,
@@ -310,6 +316,7 @@
 				3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */,
 				3A0000010000000000000006 /* IslandPlacement.swift in Sources */,
 				3A000001000000000000001C /* IslandInteractionController.swift in Sources */,
+				3A0000090000000000000001 /* IslandMotionPolicy.swift in Sources */,
 				3A000001000000000000001E /* IslandShortcutController.swift in Sources */,
 				3A0000010000000000000007 /* IslandPlaceholderView.swift in Sources */,
 				3A0000010000000000000008 /* IslandWindowController.swift in Sources */,
@@ -322,6 +329,7 @@
 			files = (
 				3A0000010000000000000004 /* IslandPlacementTests.swift in Sources */,
 				3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */,
+				3A0000090000000000000002 /* IslandMotionPolicyTests.swift in Sources */,
 				3A0000010000000000000054 /* ActivityEngineTests.swift in Sources */,
 				3A0000010000000000000056 /* MediaFeatureTests.swift in Sources */,
 				3A0000050000000000000002 /* TimerFeatureTests.swift in Sources */,

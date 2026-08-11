@@ -59,6 +59,22 @@ final class ActivityEngineTests: XCTestCase {
         XCTAssertEqual(engine.currentActivity()?.id, "media")
     }
 
+    func testRepeatedActivitySwitchesDoNotAccumulateStaleCurrentActivity() {
+        var engine = ActivityEngine()
+        let now = Date()
+
+        for index in 0..<1_000 {
+            engine.publish(activity(id: "media", priority: 50, startedAt: now.addingTimeInterval(TimeInterval(index))))
+            engine.publish(activity(id: "timer", priority: 100, startedAt: now.addingTimeInterval(TimeInterval(index + 1))))
+
+            XCTAssertEqual(engine.currentActivity()?.id, "timer")
+
+            engine.removeActivity(id: "timer")
+
+            XCTAssertEqual(engine.currentActivity()?.id, "media")
+        }
+    }
+
     private func activity(id: String, priority: Int, startedAt: Date) -> Activity {
         Activity(
             id: id,
@@ -70,4 +86,3 @@ final class ActivityEngineTests: XCTestCase {
         )
     }
 }
-
