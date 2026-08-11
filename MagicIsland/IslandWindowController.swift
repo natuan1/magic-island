@@ -14,6 +14,9 @@ final class IslandWindowController {
     private let fileShelfItemsProvider: @MainActor () -> [ShelfItem]
     private let fileDropHandler: @MainActor ([URL]) -> Void
     private let shelfRevealHandler: @MainActor (UUID) -> Void
+    private let clipboardItemsProvider: @MainActor () -> [ClipboardHistoryItem]
+    private let clipboardCopyHandler: @MainActor (UUID) -> Void
+    private let clipboardDeleteHandler: @MainActor (UUID) -> Void
     private var interactionController = IslandInteractionController()
     private var shortcutController: IslandShortcutController?
     private var currentPresentation: IslandPresentation = .passive
@@ -26,7 +29,10 @@ final class IslandWindowController {
         mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in },
         fileShelfItemsProvider: @escaping @MainActor () -> [ShelfItem] = { [] },
         fileDropHandler: @escaping @MainActor ([URL]) -> Void = { _ in },
-        shelfRevealHandler: @escaping @MainActor (UUID) -> Void = { _ in }
+        shelfRevealHandler: @escaping @MainActor (UUID) -> Void = { _ in },
+        clipboardItemsProvider: @escaping @MainActor () -> [ClipboardHistoryItem] = { [] },
+        clipboardCopyHandler: @escaping @MainActor (UUID) -> Void = { _ in },
+        clipboardDeleteHandler: @escaping @MainActor (UUID) -> Void = { _ in }
     ) {
         self.settingsStore = settingsStore
         self.currentActivityProvider = currentActivityProvider
@@ -34,6 +40,9 @@ final class IslandWindowController {
         self.fileShelfItemsProvider = fileShelfItemsProvider
         self.fileDropHandler = fileDropHandler
         self.shelfRevealHandler = shelfRevealHandler
+        self.clipboardItemsProvider = clipboardItemsProvider
+        self.clipboardCopyHandler = clipboardCopyHandler
+        self.clipboardDeleteHandler = clipboardDeleteHandler
 
         let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? screenProvider()
         let placement = IslandPlacement.frame(
@@ -63,7 +72,10 @@ final class IslandWindowController {
                 onHomeSelection: { [weak self] destination in
                     self?.selectHomeDestination(destination)
                 },
-                onRevealShelfItem: shelfRevealHandler
+                onRevealShelfItem: shelfRevealHandler,
+                clipboardItems: clipboardItemsProvider(),
+                onCopyClipboardItem: clipboardCopyHandler,
+                onDeleteClipboardItem: clipboardDeleteHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
@@ -192,6 +204,9 @@ final class IslandWindowController {
         if settingsStore.isFeatureEnabled(.fileShelf) {
             destinations.append(.fileShelf)
         }
+        if settingsStore.isFeatureEnabled(.clipboardHistory) {
+            destinations.append(.clipboardHistory)
+        }
         destinations.append(.settings)
         return destinations
     }
@@ -231,7 +246,10 @@ final class IslandWindowController {
                 onHomeSelection: { [weak self] destination in
                     self?.selectHomeDestination(destination)
                 },
-                onRevealShelfItem: shelfRevealHandler
+                onRevealShelfItem: shelfRevealHandler,
+                clipboardItems: clipboardItemsProvider(),
+                onCopyClipboardItem: clipboardCopyHandler,
+                onDeleteClipboardItem: clipboardDeleteHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in

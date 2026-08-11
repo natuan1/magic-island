@@ -11,6 +11,11 @@ struct IslandPlaceholderView: View {
     let fileShelfItems: [ShelfItem]
     let onHomeSelection: (HomeDestination) -> Void
     let onRevealShelfItem: (UUID) -> Void
+    let clipboardItems: [ClipboardHistoryItem]
+    let onCopyClipboardItem: (UUID) -> Void
+    let onDeleteClipboardItem: (UUID) -> Void
+
+    @State private var clipboardSearchQuery = ""
 
     init(
         size: CGSize = IslandWindowController.placeholderSize,
@@ -21,7 +26,10 @@ struct IslandPlaceholderView: View {
         availableHomeDestinations: [HomeDestination] = [.media, .fileShelf, .settings],
         fileShelfItems: [ShelfItem] = [],
         onHomeSelection: @escaping (HomeDestination) -> Void = { _ in },
-        onRevealShelfItem: @escaping (UUID) -> Void = { _ in }
+        onRevealShelfItem: @escaping (UUID) -> Void = { _ in },
+        clipboardItems: [ClipboardHistoryItem] = [],
+        onCopyClipboardItem: @escaping (UUID) -> Void = { _ in },
+        onDeleteClipboardItem: @escaping (UUID) -> Void = { _ in }
     ) {
         self.size = size
         self.presentation = presentation
@@ -32,6 +40,9 @@ struct IslandPlaceholderView: View {
         self.fileShelfItems = fileShelfItems
         self.onHomeSelection = onHomeSelection
         self.onRevealShelfItem = onRevealShelfItem
+        self.clipboardItems = clipboardItems
+        self.onCopyClipboardItem = onCopyClipboardItem
+        self.onDeleteClipboardItem = onDeleteClipboardItem
     }
 
     var body: some View {
@@ -155,7 +166,9 @@ struct IslandPlaceholderView: View {
         switch selectedHomeDestination {
         case .fileShelf:
             fileShelfDetail
-        case .media, .clipboardHistory, .settings, nil:
+        case .clipboardHistory:
+            clipboardHistoryDetail
+        case .media, .settings, nil:
             activityDetail(for: anchor)
         }
     }
@@ -232,6 +245,102 @@ struct IslandPlaceholderView: View {
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         .onDrag {
             NSItemProvider(contentsOf: item.url) ?? NSItemProvider(object: item.url.path as NSString)
+        }
+    }
+
+    private var clipboardHistoryDetail: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Search", text: $clipboardSearchQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.86))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            let visibleItems = filteredClipboardItems
+            if visibleItems.isEmpty {
+                Text("Clipboard History empty")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ForEach(visibleItems.prefix(3)) { item in
+                    clipboardRow(item)
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var filteredClipboardItems: [ClipboardHistoryItem] {
+        let query = clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return clipboardItems
+        }
+
+        return clipboardItems.filter {
+            $0.searchableText.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private func clipboardRow(_ item: ClipboardHistoryItem) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: iconName(for: item.type))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.72))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(1)
+                Text(item.type.title)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.46))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button(action: { onCopyClipboardItem(item.id) }) {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.74))
+                    .frame(width: 25, height: 23)
+            }
+            .buttonStyle(.plain)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+
+            Button(action: { onDeleteClipboardItem(item.id) }) {
+                Image(systemName: "trash")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.64))
+                    .frame(width: 25, height: 23)
+            }
+            .buttonStyle(.plain)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func iconName(for type: ClipboardContentType) -> String {
+        switch type {
+        case .text:
+            return "text.alignleft"
+        case .url:
+            return "link"
+        case .image:
+            return "photo"
+        case .fileReference:
+            return "doc"
         }
     }
 
