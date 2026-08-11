@@ -9,6 +9,7 @@ Automated coverage added:
 - Core Island icon controls now expose explicit VoiceOver labels and hover help.
 - Hover timers are invalidated when the hosting view is released.
 - Expanded Island keyboard order and activation labels are covered for Media, Timer, File Shelf, Clipboard History, Home navigation, and Permission Center rows. See `docs/checks/issue-27-keyboard-navigation.md`.
+- Permission Center rows remain in scope for UI/UX hardening, but Media default behavior and Spotify Automation gating are tracked separately in #26. See `docs/checks/issue-28-permission-center-scope.md`.
 
 Manual verification still required before closing the HITL acceptance criteria:
 
