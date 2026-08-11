@@ -6,6 +6,7 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
     case fileShelf
     case clipboardHistory
     case timer
+    case quickActions
 
     var id: String { rawValue }
 
@@ -19,12 +20,14 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
             return "Clipboard History"
         case .timer:
             return "Timer"
+        case .quickActions:
+            return "Quick Actions"
         }
     }
 
     var isEnabledByDefault: Bool {
         switch self {
-        case .media, .fileShelf, .timer:
+        case .media, .fileShelf, .timer, .quickActions:
             return true
         case .clipboardHistory:
             return false
