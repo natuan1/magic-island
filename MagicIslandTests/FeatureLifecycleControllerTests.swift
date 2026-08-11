@@ -8,7 +8,7 @@ final class FeatureLifecycleControllerTests: XCTestCase {
         settingsStore.setFeature(.media, enabled: true)
         var controller = FeatureLifecycleController(
             settingsStore: settingsStore,
-            permissionAuthorizer: SpyPermissionAuthorizer(requestResult: .granted)
+            permissionAuthorizer: SpyPermissionAuthorizer(currentResult: .granted)
         )
         var engine = ActivityEngine()
         var started: [FeatureID] = []
@@ -53,51 +53,83 @@ final class FeatureLifecycleControllerTests: XCTestCase {
         XCTAssertEqual(started.filter { $0 == .fileShelf }.count, 1)
     }
 
-    func testPermissionedFeatureRequestsPermissionJustInTimeWhenEnabled() {
+    func testNotDeterminedPermissionStartsFeatureWithoutPrompting() {
         let defaults = UserDefaults(suiteName: "FeatureLifecycleControllerTests.\(UUID().uuidString)")!
         let settingsStore = SettingsStore(defaults: defaults)
         settingsStore.setFeature(.media, enabled: true)
-        let authorizer = SpyPermissionAuthorizer(requestResult: .granted)
+        let authorizer = SpyPermissionAuthorizer(currentResult: .notDetermined)
         var controller = FeatureLifecycleController(settingsStore: settingsStore, permissionAuthorizer: authorizer)
         var engine = ActivityEngine()
         var started: [FeatureID] = []
 
         controller.sync(engine: &engine, startFeature: { started.append($0) }, stopFeature: { _ in })
 
-        XCTAssertEqual(authorizer.requestedPermissions, [.spotifyAutomation])
+        XCTAssertTrue(authorizer.requestedPermissions.isEmpty)
+        XCTAssertTrue(started.contains(.media))
+        XCTAssertTrue(settingsStore.isFeatureEnabled(.media))
+        XCTAssertEqual(settingsStore.permissionGrantState(.spotifyAutomation), .notDetermined)
+    }
+
+    func testGrantedPermissionStartsFeatureAndPersistsGrant() {
+        let defaults = UserDefaults(suiteName: "FeatureLifecycleControllerTests.\(UUID().uuidString)")!
+        let settingsStore = SettingsStore(defaults: defaults)
+        settingsStore.setFeature(.media, enabled: true)
+        let authorizer = SpyPermissionAuthorizer(currentResult: .granted)
+        var controller = FeatureLifecycleController(settingsStore: settingsStore, permissionAuthorizer: authorizer)
+        var engine = ActivityEngine()
+        var started: [FeatureID] = []
+
+        controller.sync(engine: &engine, startFeature: { started.append($0) }, stopFeature: { _ in })
+
+        XCTAssertTrue(authorizer.requestedPermissions.isEmpty)
         XCTAssertTrue(started.contains(.media))
         XCTAssertEqual(settingsStore.permissionGrantState(.spotifyAutomation), .granted)
     }
 
-    func testDeniedPermissionKeepsFeatureDisabledWithoutRepeatedPrompts() {
+    func testDeniedPermissionKeepsFeatureDisabledWithoutPrompting() {
+        assertPermissionStateDisablesMedia(.denied)
+    }
+
+    func testUnavailablePermissionKeepsFeatureDisabledWithoutPrompting() {
+        assertPermissionStateDisablesMedia(.unavailable)
+    }
+
+    private func assertPermissionStateDisablesMedia(
+        _ permissionState: PermissionGrantState,
+        line: UInt = #line
+    ) {
         let defaults = UserDefaults(suiteName: "FeatureLifecycleControllerTests.\(UUID().uuidString)")!
         let settingsStore = SettingsStore(defaults: defaults)
         settingsStore.setFeature(.media, enabled: true)
-        let authorizer = SpyPermissionAuthorizer(requestResult: .denied)
+        let authorizer = SpyPermissionAuthorizer(currentResult: permissionState)
         var controller = FeatureLifecycleController(settingsStore: settingsStore, permissionAuthorizer: authorizer)
         var engine = ActivityEngine()
         var started: [FeatureID] = []
 
         controller.sync(engine: &engine, startFeature: { started.append($0) }, stopFeature: { _ in })
-        settingsStore.setFeature(.media, enabled: true)
-        controller.sync(engine: &engine, startFeature: { started.append($0) }, stopFeature: { _ in })
 
-        XCTAssertEqual(authorizer.requestedPermissions, [.spotifyAutomation])
+        XCTAssertTrue(authorizer.requestedPermissions.isEmpty, line: line)
         XCTAssertFalse(settingsStore.isFeatureEnabled(.media))
-        XCTAssertFalse(started.contains(.media))
+        XCTAssertFalse(started.contains(.media), line: line)
+        XCTAssertEqual(settingsStore.permissionGrantState(.spotifyAutomation), permissionState, line: line)
     }
 }
 
 private final class SpyPermissionAuthorizer: PermissionAuthorizing {
+    private let currentResult: PermissionGrantState
     private let requestResult: PermissionGrantState
     private(set) var requestedPermissions: [PermissionID] = []
 
-    init(requestResult: PermissionGrantState) {
+    init(
+        currentResult: PermissionGrantState,
+        requestResult: PermissionGrantState = .notDetermined
+    ) {
+        self.currentResult = currentResult
         self.requestResult = requestResult
     }
 
     func currentGrantState(for permissionID: PermissionID) -> PermissionGrantState {
-        requestedPermissions.contains(permissionID) ? requestResult : .notDetermined
+        currentResult
     }
 
     func requestGrant(for permissionID: PermissionID) -> PermissionGrantState {

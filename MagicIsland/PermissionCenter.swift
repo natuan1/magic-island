@@ -17,7 +17,7 @@ enum PermissionGrantState: String, Equatable {
     var title: String {
         switch self {
         case .notDetermined:
-            return "Not Requested"
+            return "Unknown / Not Requested"
         case .granted:
             return "Granted"
         case .denied:
@@ -49,7 +49,7 @@ struct PermissionCenter {
             id: .spotifyAutomation,
             title: "Spotify Automation",
             state: .notDetermined,
-            stateDescription: "Last known state. Magic Island checks without prompting in Settings.",
+            stateDescription: "Last known state. Unknown also covers Spotify not running or Automation not requested yet. Magic Island checks without prompting in Settings.",
             purpose: "Control Spotify playback and read the current track for the Media Feature.",
             featureID: .media,
             revokeGuidance: "System Settings > Privacy & Security > Automation > Magic Island > Spotify"
@@ -99,12 +99,7 @@ struct PermissionCenter {
                 settingsStore.setFeature(featureID, enabled: false)
                 return false
             case .notDetermined:
-                let requestedState = authorizer.requestGrant(for: permissionID)
-                settingsStore.setPermissionGrantState(permissionID, requestedState)
-                guard requestedState == .granted else {
-                    settingsStore.setFeature(featureID, enabled: false)
-                    return false
-                }
+                settingsStore.setPermissionGrantState(permissionID, .notDetermined)
             }
         }
 
@@ -127,6 +122,16 @@ struct PermissionCenter {
 }
 
 final class NativePermissionAuthorizer: PermissionAuthorizing {
+    private let runningApplicationProvider: (String) -> NSRunningApplication?
+
+    init(
+        runningApplicationProvider: @escaping (String) -> NSRunningApplication? = {
+            NSRunningApplication.runningApplications(withBundleIdentifier: $0).first
+        }
+    ) {
+        self.runningApplicationProvider = runningApplicationProvider
+    }
+
     func currentGrantState(for permissionID: PermissionID) -> PermissionGrantState {
         switch permissionID {
         case .spotifyAutomation:
@@ -142,9 +147,7 @@ final class NativePermissionAuthorizer: PermissionAuthorizing {
     }
 
     private func determineSpotifyAutomation(askUserIfNeeded: Bool) -> PermissionGrantState {
-        guard let target = NSRunningApplication.runningApplications(
-            withBundleIdentifier: "com.spotify.client"
-        ).first else {
+        guard let target = runningApplicationProvider("com.spotify.client") else {
             return .notDetermined
         }
 
