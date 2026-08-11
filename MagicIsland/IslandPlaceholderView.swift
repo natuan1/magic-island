@@ -1,6 +1,160 @@
 import AppKit
 import SwiftUI
 
+struct ExpandedIslandKeyboardControl: Equatable {
+    enum Group: Equatable {
+        case media
+        case timer
+        case fileShelf
+        case clipboardHistory
+        case homeNavigation
+    }
+
+    let group: Group
+    let accessibilityLabel: String
+    let activationDescription: String
+}
+
+enum ExpandedIslandKeyboardNavigation {
+    static func controls(
+        anchor: IslandExpansionAnchor,
+        selectedHomeDestination: HomeDestination?,
+        availableHomeDestinations: [HomeDestination],
+        fileShelfItems: [ShelfItem],
+        clipboardItems: [ClipboardHistoryItem],
+        quickActionsProvider: (QuickActionContext) -> [QuickAction]
+    ) -> [ExpandedIslandKeyboardControl] {
+        detailControls(
+            anchor: anchor,
+            selectedHomeDestination: selectedHomeDestination,
+            fileShelfItems: fileShelfItems,
+            clipboardItems: clipboardItems,
+            quickActionsProvider: quickActionsProvider
+        ) + availableHomeDestinations.map {
+            ExpandedIslandKeyboardControl(
+                group: .homeNavigation,
+                accessibilityLabel: $0.title,
+                activationDescription: "Open \($0.title)"
+            )
+        }
+    }
+
+    private static func detailControls(
+        anchor: IslandExpansionAnchor,
+        selectedHomeDestination: HomeDestination?,
+        fileShelfItems: [ShelfItem],
+        clipboardItems: [ClipboardHistoryItem],
+        quickActionsProvider: (QuickActionContext) -> [QuickAction]
+    ) -> [ExpandedIslandKeyboardControl] {
+        switch selectedHomeDestination {
+        case .fileShelf:
+            return fileShelfItems.flatMap { item in
+                guard item.isAvailable() else {
+                    return [] as [ExpandedIslandKeyboardControl]
+                }
+
+                return quickActionsProvider(.shelf(item)).prefix(4).map {
+                    ExpandedIslandKeyboardControl(
+                        group: .fileShelf,
+                        accessibilityLabel: $0.title,
+                        activationDescription: "\($0.title) \(item.name)"
+                    )
+                }
+            }
+        case .clipboardHistory:
+            return clipboardItems.prefix(3).flatMap { item in
+                quickActionsProvider(.clipboard(item)).prefix(4).map {
+                    ExpandedIslandKeyboardControl(
+                        group: .clipboardHistory,
+                        accessibilityLabel: $0.title,
+                        activationDescription: "\($0.title) \(item.title)"
+                    )
+                } + [
+                    ExpandedIslandKeyboardControl(
+                        group: .clipboardHistory,
+                        accessibilityLabel: "Delete \(item.title)",
+                        activationDescription: "Delete clipboard item"
+                    )
+                ]
+            }
+        case .timer:
+            return timerControls(anchor: anchor)
+        case .media, .settings, nil:
+            return activityControls(anchor: anchor)
+        }
+    }
+
+    private static func activityControls(anchor: IslandExpansionAnchor) -> [ExpandedIslandKeyboardControl] {
+        guard case .currentActivity(let activity) = anchor else {
+            return []
+        }
+
+        switch activity.presentation {
+        case .generic:
+            return []
+        case .media(let media):
+            var controls: [ExpandedIslandKeyboardControl] = []
+            if media.supportedControls.contains(.previous) {
+                controls.append(mediaControl(label: MediaCommand.previous.accessibilityLabel, activation: "Previous track"))
+            }
+            if media.supportedControls.contains(.playPause) {
+                controls.append(mediaControl(label: MediaCommand.playPause.accessibilityLabel, activation: "Play or pause media"))
+            }
+            if media.supportedControls.contains(.next) {
+                controls.append(mediaControl(label: MediaCommand.next.accessibilityLabel, activation: "Next track"))
+            }
+            if media.supportedControls.contains(.seek) {
+                controls.append(mediaControl(label: "Seek forward 15 seconds", activation: "Seek media forward"))
+            }
+            return controls
+        case .timer:
+            return timerControls(anchor: anchor)
+        }
+    }
+
+    private static func timerControls(anchor: IslandExpansionAnchor) -> [ExpandedIslandKeyboardControl] {
+        guard case .currentActivity(let activity) = anchor,
+              case .timer(let timer) = activity.presentation else {
+            return [5, 10, 25].map {
+                ExpandedIslandKeyboardControl(
+                    group: .timer,
+                    accessibilityLabel: "Start \($0) minute timer",
+                    activationDescription: "Start timer"
+                )
+            }
+        }
+
+        let commands: [TimerCommand]
+        switch timer.state {
+        case .running:
+            commands = [.pause, .restart, .cancel, .close]
+        case .paused:
+            commands = [.resume, .restart, .cancel, .close]
+        case .completed:
+            commands = [.restart, .close]
+        }
+
+        return commands.map {
+            ExpandedIslandKeyboardControl(
+                group: .timer,
+                accessibilityLabel: $0.accessibilityLabel,
+                activationDescription: $0.accessibilityLabel
+            )
+        }
+    }
+
+    private static func mediaControl(
+        label: String,
+        activation: String
+    ) -> ExpandedIslandKeyboardControl {
+        ExpandedIslandKeyboardControl(
+            group: .media,
+            accessibilityLabel: label,
+            activationDescription: activation
+        )
+    }
+}
+
 struct IslandPlaceholderView: View {
     let size: CGSize
     let presentation: IslandPresentation
@@ -492,7 +646,8 @@ struct IslandPlaceholderView: View {
         .buttonStyle(.plain)
         .background(.white.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .accessibilityLabel(accessibilityLabel(for: command))
+        .help(command.accessibilityLabel)
+        .accessibilityLabel(command.accessibilityLabel)
     }
 
     private func artwork(for media: MediaActivity) -> some View {
@@ -529,7 +684,8 @@ struct IslandPlaceholderView: View {
         .background(.white.opacity(isEnabled ? 0.14 : 0.06))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .disabled(!isEnabled)
-        .accessibilityLabel(accessibilityLabel(for: command))
+        .help(command.accessibilityLabel)
+        .accessibilityLabel(command.accessibilityLabel)
     }
 
     private func mediaProgress(_ media: MediaActivity) -> some View {
@@ -592,36 +748,6 @@ struct IslandPlaceholderView: View {
         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         .help(destination.title)
         .accessibilityLabel(destination.title)
-    }
-
-    private func accessibilityLabel(for command: TimerCommand) -> String {
-        switch command {
-        case .start(let duration):
-            return "Start \(Int(duration / 60)) minute timer"
-        case .pause:
-            return "Pause timer"
-        case .resume:
-            return "Resume timer"
-        case .restart:
-            return "Restart timer"
-        case .cancel:
-            return "Cancel timer"
-        case .close:
-            return "Close timer"
-        }
-    }
-
-    private func accessibilityLabel(for command: MediaCommand) -> String {
-        switch command {
-        case .playPause:
-            return "Play or pause media"
-        case .previous:
-            return "Previous track"
-        case .next:
-            return "Next track"
-        case .seek:
-            return "Seek media"
-        }
     }
 
     private func title(for anchor: IslandExpansionAnchor) -> String {
@@ -715,6 +841,40 @@ enum HomeDestination: Equatable {
             return "Timer"
         case .settings:
             return "Settings"
+        }
+    }
+}
+
+extension TimerCommand {
+    var accessibilityLabel: String {
+        switch self {
+        case .start(let duration):
+            return "Start \(Int(duration / 60)) minute timer"
+        case .pause:
+            return "Pause timer"
+        case .resume:
+            return "Resume timer"
+        case .restart:
+            return "Restart timer"
+        case .cancel:
+            return "Cancel timer"
+        case .close:
+            return "Close timer"
+        }
+    }
+}
+
+extension MediaCommand {
+    var accessibilityLabel: String {
+        switch self {
+        case .playPause:
+            return "Play or pause media"
+        case .previous:
+            return "Previous track"
+        case .next:
+            return "Next track"
+        case .seek:
+            return "Seek media"
         }
     }
 }

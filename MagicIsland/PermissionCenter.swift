@@ -36,6 +36,10 @@ struct PermissionCenterItem: Equatable, Identifiable {
     let purpose: String
     let featureID: FeatureID
     let revokeGuidance: String
+
+    var keyboardAccessibilityLabel: String {
+        "\(title), \(state.title), \(featureID.title). \(purpose) Revoke in \(revokeGuidance)"
+    }
 }
 
 protocol PermissionAuthorizing {

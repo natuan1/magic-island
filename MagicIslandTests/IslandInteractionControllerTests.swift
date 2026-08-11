@@ -122,4 +122,192 @@ final class IslandInteractionControllerTests: XCTestCase {
             XCTAssertEqual(transition.focusBehavior, .passive)
         }
     }
+
+    func testExpandedMediaKeyboardControlsFollowTransportOrderBeforeHomeNavigation() {
+        let controls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: .currentActivity(mediaActivity()),
+            selectedHomeDestination: nil,
+            availableHomeDestinations: [.media, .fileShelf, .clipboardHistory, .timer, .settings],
+            fileShelfItems: [],
+            clipboardItems: [],
+            quickActionsProvider: { _ in [] }
+        )
+
+        XCTAssertEqual(controls.map(\.accessibilityLabel), [
+            "Previous track",
+            "Play or pause media",
+            "Next track",
+            "Seek forward 15 seconds",
+            "Media",
+            "File Shelf",
+            "Clipboard History",
+            "Timer",
+            "Settings"
+        ])
+        XCTAssertEqual(controls.map(\.group).prefix(4), [.media, .media, .media, .media])
+    }
+
+    func testExpandedTimerKeyboardControlsCoverStartAndRunningStates() {
+        let startControls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: .idlePlaceholder,
+            selectedHomeDestination: .timer,
+            availableHomeDestinations: [.timer, .settings],
+            fileShelfItems: [],
+            clipboardItems: [],
+            quickActionsProvider: { _ in [] }
+        )
+
+        XCTAssertEqual(startControls.map(\.accessibilityLabel), [
+            "Start 5 minute timer",
+            "Start 10 minute timer",
+            "Start 25 minute timer",
+            "Timer",
+            "Settings"
+        ])
+
+        let runningControls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: .currentActivity(timerActivity(state: .running)),
+            selectedHomeDestination: .timer,
+            availableHomeDestinations: [.timer, .settings],
+            fileShelfItems: [],
+            clipboardItems: [],
+            quickActionsProvider: { _ in [] }
+        )
+
+        XCTAssertEqual(runningControls.map(\.accessibilityLabel), [
+            "Pause timer",
+            "Restart timer",
+            "Cancel timer",
+            "Close timer",
+            "Timer",
+            "Settings"
+        ])
+    }
+
+    func testExpandedFileShelfAndClipboardKeyboardControlsExposeQuickActionsAndDeletes() {
+        let shelfItem = existingShelfItem()
+        let clipboardItem = clipboardItem("Deploy notes")
+        let quickActions: (QuickActionContext) -> [QuickAction] = { context in
+            switch context {
+            case .shelf:
+                return [
+                    QuickAction(id: .openFile, title: "Open", systemImageName: "arrow.up.right.square"),
+                    QuickAction(id: .previewFile, title: "Preview", systemImageName: "eye")
+                ]
+            case .clipboard:
+                return [
+                    QuickAction(id: .copyText, title: "Copy", systemImageName: "doc.on.doc"),
+                    QuickAction(id: .searchText, title: "Search Web", systemImageName: "magnifyingglass")
+                ]
+            }
+        }
+
+        let shelfControls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: .idlePlaceholder,
+            selectedHomeDestination: .fileShelf,
+            availableHomeDestinations: [.fileShelf, .settings],
+            fileShelfItems: [shelfItem],
+            clipboardItems: [],
+            quickActionsProvider: quickActions
+        )
+
+        XCTAssertEqual(shelfControls.map(\.accessibilityLabel), [
+            "Open",
+            "Preview",
+            "File Shelf",
+            "Settings"
+        ])
+
+        let clipboardControls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: .idlePlaceholder,
+            selectedHomeDestination: .clipboardHistory,
+            availableHomeDestinations: [.clipboardHistory, .settings],
+            fileShelfItems: [],
+            clipboardItems: [clipboardItem],
+            quickActionsProvider: quickActions
+        )
+
+        XCTAssertEqual(clipboardControls.map(\.accessibilityLabel), [
+            "Copy",
+            "Search Web",
+            "Delete Deploy notes",
+            "Clipboard History",
+            "Settings"
+        ])
+    }
+
+    func testPermissionCenterRowsExposeSingleKeyboardReadableLabel() {
+        let item = PermissionCenterItem(
+            id: .spotifyAutomation,
+            title: "Spotify Automation",
+            state: .notDetermined,
+            stateDescription: "Last known state",
+            purpose: "Control Spotify playback and read the current track for the Media Feature.",
+            featureID: .media,
+            revokeGuidance: "System Settings > Privacy & Security > Automation > Magic Island > Spotify"
+        )
+
+        XCTAssertEqual(
+            item.keyboardAccessibilityLabel,
+            "Spotify Automation, Not Requested, Media. Control Spotify playback and read the current track for the Media Feature. Revoke in System Settings > Privacy & Security > Automation > Magic Island > Spotify"
+        )
+    }
+
+    private func mediaActivity() -> Activity {
+        Activity(
+            id: "media.current",
+            featureID: "media",
+            priority: 50,
+            startedAt: Date(),
+            expiresAt: nil,
+            presentation: .media(MediaActivity(snapshot: MediaSnapshot(
+                appName: "Spotify",
+                title: "Hemispheres",
+                artist: "Lush",
+                artworkData: nil,
+                playbackState: .playing,
+                supportedControls: [.previous, .playPause, .next, .seek],
+                duration: 240,
+                position: 12
+            )))
+        )
+    }
+
+    private func timerActivity(state: TimerActivityState) -> Activity {
+        Activity(
+            id: "timer.current",
+            featureID: "timer",
+            priority: 40,
+            startedAt: Date(),
+            expiresAt: nil,
+            presentation: .timer(TimerActivity(state: state, remainingTime: 60, duration: 300))
+        )
+    }
+
+    private func clipboardItem(_ title: String) -> ClipboardHistoryItem {
+        ClipboardHistoryItem(
+            id: UUID(),
+            type: .text,
+            title: title,
+            contentHash: title,
+            addedAt: Date(),
+            text: title,
+            fileURL: nil,
+            imageData: nil
+        )
+    }
+
+    private func existingShelfItem() -> ShelfItem {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("keyboard-nav-\(UUID().uuidString).txt")
+        FileManager.default.createFile(atPath: url.path, contents: Data("test".utf8))
+        return ShelfItem(
+            id: UUID(),
+            url: url,
+            name: url.lastPathComponent,
+            typeDescription: "TXT",
+            storageMode: .reference,
+            addedAt: Date()
+        )
+    }
 }

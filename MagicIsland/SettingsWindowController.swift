@@ -249,7 +249,7 @@ private struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(item.title), \(item.state.title), \(item.featureID.title). \(item.purpose) Revoke in \(item.revokeGuidance)")
+                .accessibilityLabel(item.keyboardAccessibilityLabel)
             }
         }
     }
