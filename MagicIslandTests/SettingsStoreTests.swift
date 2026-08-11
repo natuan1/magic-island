@@ -31,6 +31,7 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: defaults)
 
         XCTAssertTrue(store.isFeatureEnabled(.media))
+        XCTAssertTrue(store.isFeatureEnabled(.fileShelf))
 
         store.setFeature(.media, enabled: false)
 

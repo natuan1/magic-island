@@ -86,4 +86,24 @@ final class IslandInteractionControllerTests: XCTestCase {
         XCTAssertEqual(transition.presentation, .passive)
         XCTAssertEqual(transition.focusBehavior, .passive)
     }
+
+    func testDraggingFilesOverIslandShowsDragTargetFeedback() {
+        var controller = IslandInteractionController()
+
+        let transition = controller.dragEntered()
+
+        XCTAssertEqual(controller.state, .dragTarget)
+        XCTAssertEqual(transition.presentation, .dragTarget)
+        XCTAssertEqual(transition.focusBehavior, .passive)
+    }
+
+    func testFinishingDragTargetReturnsToPassive() {
+        var controller = IslandInteractionController()
+        _ = controller.dragEntered()
+
+        let transition = controller.dragExited()
+
+        XCTAssertEqual(controller.state, .passive)
+        XCTAssertEqual(transition.presentation, .passive)
+    }
 }
