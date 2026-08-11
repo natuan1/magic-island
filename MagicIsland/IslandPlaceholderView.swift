@@ -244,6 +244,7 @@ struct IslandPlaceholderView: View {
         .buttonStyle(.plain)
         .background(.white.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .accessibilityLabel("Start \(title) timer")
     }
 
     private var fileShelfDetail: some View {
@@ -365,6 +366,8 @@ struct IslandPlaceholderView: View {
             .buttonStyle(.plain)
             .background(.white.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .help("Delete")
+            .accessibilityLabel("Delete \(item.title)")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -386,6 +389,7 @@ struct IslandPlaceholderView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .disabled(!isEnabled)
                 .help(action.title)
+                .accessibilityLabel(action.title)
             }
         }
     }
@@ -488,6 +492,7 @@ struct IslandPlaceholderView: View {
         .buttonStyle(.plain)
         .background(.white.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .accessibilityLabel(accessibilityLabel(for: command))
     }
 
     private func artwork(for media: MediaActivity) -> some View {
@@ -524,6 +529,7 @@ struct IslandPlaceholderView: View {
         .background(.white.opacity(isEnabled ? 0.14 : 0.06))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .disabled(!isEnabled)
+        .accessibilityLabel(accessibilityLabel(for: command))
     }
 
     private func mediaProgress(_ media: MediaActivity) -> some View {
@@ -548,6 +554,7 @@ struct IslandPlaceholderView: View {
             .frame(width: 96, height: 5)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Seek forward 15 seconds")
     }
 
     private var homeNavigation: some View {
@@ -583,6 +590,38 @@ struct IslandPlaceholderView: View {
         .buttonStyle(.plain)
         .background(.white.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .help(destination.title)
+        .accessibilityLabel(destination.title)
+    }
+
+    private func accessibilityLabel(for command: TimerCommand) -> String {
+        switch command {
+        case .start(let duration):
+            return "Start \(Int(duration / 60)) minute timer"
+        case .pause:
+            return "Pause timer"
+        case .resume:
+            return "Resume timer"
+        case .restart:
+            return "Restart timer"
+        case .cancel:
+            return "Cancel timer"
+        case .close:
+            return "Close timer"
+        }
+    }
+
+    private func accessibilityLabel(for command: MediaCommand) -> String {
+        switch command {
+        case .playPause:
+            return "Play or pause media"
+        case .previous:
+            return "Previous track"
+        case .next:
+            return "Next track"
+        case .seek:
+            return "Seek media"
+        }
     }
 
     private func title(for anchor: IslandExpansionAnchor) -> String {
@@ -663,4 +702,19 @@ enum HomeDestination: Equatable {
     case clipboardHistory
     case timer
     case settings
+
+    var title: String {
+        switch self {
+        case .media:
+            return "Media"
+        case .fileShelf:
+            return "File Shelf"
+        case .clipboardHistory:
+            return "Clipboard History"
+        case .timer:
+            return "Timer"
+        case .settings:
+            return "Settings"
+        }
+    }
 }

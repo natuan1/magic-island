@@ -106,4 +106,20 @@ final class IslandInteractionControllerTests: XCTestCase {
         XCTAssertEqual(controller.state, .passive)
         XCTAssertEqual(transition.presentation, .passive)
     }
+
+    func testRepeatedExpandCollapseReturnsToPassiveWithoutAccumulatingState() {
+        var controller = IslandInteractionController()
+
+        for _ in 0..<1_000 {
+            _ = controller.hoverEntered()
+            _ = controller.click(currentActivity: nil)
+            _ = controller.beginInteracting()
+            _ = controller.collapse()
+            let transition = controller.finishCollapse()
+
+            XCTAssertEqual(controller.state, .passive)
+            XCTAssertEqual(transition.presentation, .passive)
+            XCTAssertEqual(transition.focusBehavior, .passive)
+        }
+    }
 }

@@ -4,11 +4,10 @@ import SwiftUI
 @MainActor
 final class IslandWindowController {
     static let placeholderSize = IslandPlacement.floatingIslandSize
-    private static let peekSize = CGSize(width: 184, height: 46)
-    private static let expandedSize = CGSize(width: 420, height: 220)
 
     private let panel: IslandPanel
     private let settingsStore: SettingsStore
+    private let motionPreferenceProvider: MotionPreferenceProviding
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
     private let mediaCommandHandler: @MainActor (MediaCommand) -> Void
     private let timerCommandHandler: @MainActor (TimerCommand) -> Void
@@ -28,6 +27,7 @@ final class IslandWindowController {
     init(
         settingsStore: SettingsStore = SettingsStore(),
         screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
+        motionPreferenceProvider: MotionPreferenceProviding = SystemMotionPreferenceProvider(),
         currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil },
         mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in },
         timerCommandHandler: @escaping @MainActor (TimerCommand) -> Void = { _ in },
@@ -41,6 +41,7 @@ final class IslandWindowController {
         quickActionHandler: @escaping @MainActor (QuickActionID, QuickActionContext) -> QuickActionResult = { _, _ in .failure("Action unavailable") }
     ) {
         self.settingsStore = settingsStore
+        self.motionPreferenceProvider = motionPreferenceProvider
         self.currentActivityProvider = currentActivityProvider
         self.mediaCommandHandler = mediaCommandHandler
         self.timerCommandHandler = timerCommandHandler
@@ -145,7 +146,7 @@ final class IslandWindowController {
             break
         }
 
-        let size = Self.size(for: currentPresentation)
+        let size = IslandPresentationLayout.size(for: currentPresentation)
         panel.contentView = makeContentView(size: size, presentation: currentPresentation)
     }
 
@@ -176,7 +177,7 @@ final class IslandWindowController {
         let placement = IslandPlacement.frame(
             for: screen.map(Self.displayDescriptor) ?? Self.fallbackDisplayDescriptor
         )
-        let size = Self.size(for: currentPresentation)
+        let size = IslandPresentationLayout.size(for: currentPresentation)
         panel.setFrame(
             CGRect(
                 x: placement.frame.midX - (size.width / 2),
@@ -185,7 +186,7 @@ final class IslandWindowController {
                 height: size.height
             ),
             display: true,
-            animate: true
+            animate: motionPolicy.animatesGeometryChanges
         )
         configureShortcutController()
         panel.contentView = makeContentView(size: size, presentation: currentPresentation)
@@ -256,8 +257,8 @@ final class IslandWindowController {
         panel.allowsInputFocus = transition.focusBehavior == .inputAllowed
 
         currentPresentation = transition.presentation
-        let size = Self.size(for: transition.presentation)
-        panel.setFrame(frame(for: size), display: true, animate: true)
+        let size = IslandPresentationLayout.size(for: transition.presentation)
+        panel.setFrame(frame(for: size), display: true, animate: motionPolicy.animatesGeometryChanges)
         panel.contentView = makeContentView(size: size, presentation: transition.presentation)
 
         if transition.focusBehavior == .inputAllowed {
@@ -329,15 +330,8 @@ final class IslandWindowController {
         )
     }
 
-    private static func size(for presentation: IslandPresentation) -> CGSize {
-        switch presentation {
-        case .passive, .dragTarget, .collapsing:
-            return placeholderSize
-        case .peek:
-            return peekSize
-        case .expanded:
-            return expandedSize
-        }
+    private var motionPolicy: IslandMotionPolicy {
+        IslandMotionPolicy(reduceMotionEnabled: motionPreferenceProvider.reduceMotionEnabled)
     }
 
     private static func primaryDisplay() -> NSScreen? {
@@ -407,6 +401,12 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
     private let onFilesDropped: @MainActor ([URL]) -> Void
     private let canAcceptFiles: @MainActor () -> Bool
     private var hoverTimer: Timer?
+
+    deinit {
+        MainActor.assumeIsolated {
+            hoverTimer?.invalidate()
+        }
+    }
 
     init(
         rootView: Content,
