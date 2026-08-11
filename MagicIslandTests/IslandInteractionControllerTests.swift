@@ -24,7 +24,14 @@ final class IslandInteractionControllerTests: XCTestCase {
 
     func testClickOpensExpandedIslandAroundCurrentActivity() {
         var controller = IslandInteractionController()
-        let activity = CurrentActivity(id: "media", title: "Now Playing")
+        let activity = Activity(
+            id: "media",
+            featureID: "media",
+            priority: 50,
+            startedAt: Date(),
+            expiresAt: nil,
+            presentation: .generic(title: "Now Playing", subtitle: "Current Activity")
+        )
 
         let transition = controller.click(currentActivity: activity)
 

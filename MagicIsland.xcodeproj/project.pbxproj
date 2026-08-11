@@ -20,6 +20,11 @@
 		3A000001000000000000001C /* IslandInteractionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000046 /* IslandInteractionController.swift */; };
 		3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000047 /* IslandInteractionControllerTests.swift */; };
 		3A000001000000000000001E /* IslandShortcutController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000048 /* IslandShortcutController.swift */; };
+		3A000001000000000000001F /* ActivityEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000049 /* ActivityEngine.swift */; };
+		3A0000010000000000000050 /* SampleFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000051 /* SampleFeature.swift */; };
+		3A0000010000000000000052 /* MediaFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000053 /* MediaFeature.swift */; };
+		3A0000010000000000000054 /* ActivityEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000055 /* ActivityEngineTests.swift */; };
+		3A0000010000000000000056 /* MediaFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000010000000000000057 /* MediaFeatureTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +53,11 @@
 		3A0000010000000000000046 /* IslandInteractionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandInteractionController.swift; sourceTree = "<group>"; };
 		3A0000010000000000000047 /* IslandInteractionControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandInteractionControllerTests.swift; sourceTree = "<group>"; };
 		3A0000010000000000000048 /* IslandShortcutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandShortcutController.swift; sourceTree = "<group>"; };
+		3A0000010000000000000049 /* ActivityEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEngine.swift; sourceTree = "<group>"; };
+		3A0000010000000000000051 /* SampleFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleFeature.swift; sourceTree = "<group>"; };
+		3A0000010000000000000053 /* MediaFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaFeature.swift; sourceTree = "<group>"; };
+		3A0000010000000000000055 /* ActivityEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEngineTests.swift; sourceTree = "<group>"; };
+		3A0000010000000000000057 /* MediaFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +97,9 @@
 				3A0000010000000000000011 /* MagicIslandApp.swift */,
 				3A0000010000000000000012 /* AppDelegate.swift */,
 				3A0000010000000000000013 /* StatusBarController.swift */,
+				3A0000010000000000000049 /* ActivityEngine.swift */,
+				3A0000010000000000000051 /* SampleFeature.swift */,
+				3A0000010000000000000053 /* MediaFeature.swift */,
 				3A0000010000000000000045 /* IslandDisplaySelection.swift */,
 				3A0000010000000000000017 /* IslandPlacement.swift */,
 				3A0000010000000000000046 /* IslandInteractionController.swift */,
@@ -102,6 +115,8 @@
 			children = (
 				3A0000010000000000000014 /* IslandPlacementTests.swift */,
 				3A0000010000000000000047 /* IslandInteractionControllerTests.swift */,
+				3A0000010000000000000055 /* ActivityEngineTests.swift */,
+				3A0000010000000000000057 /* MediaFeatureTests.swift */,
 			);
 			path = MagicIslandTests;
 			sourceTree = "<group>";
@@ -225,6 +240,9 @@
 				3A0000010000000000000001 /* MagicIslandApp.swift in Sources */,
 				3A0000010000000000000002 /* AppDelegate.swift in Sources */,
 				3A0000010000000000000003 /* StatusBarController.swift in Sources */,
+				3A000001000000000000001F /* ActivityEngine.swift in Sources */,
+				3A0000010000000000000050 /* SampleFeature.swift in Sources */,
+				3A0000010000000000000052 /* MediaFeature.swift in Sources */,
 				3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */,
 				3A0000010000000000000006 /* IslandPlacement.swift in Sources */,
 				3A000001000000000000001C /* IslandInteractionController.swift in Sources */,
@@ -240,6 +258,8 @@
 			files = (
 				3A0000010000000000000004 /* IslandPlacementTests.swift in Sources */,
 				3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */,
+				3A0000010000000000000054 /* ActivityEngineTests.swift in Sources */,
+				3A0000010000000000000056 /* MediaFeatureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
