@@ -14,8 +14,11 @@ struct IslandPlaceholderView: View {
     let clipboardItems: [ClipboardHistoryItem]
     let onCopyClipboardItem: (UUID) -> Void
     let onDeleteClipboardItem: (UUID) -> Void
+    let quickActionsProvider: (QuickActionContext) -> [QuickAction]
+    let quickActionHandler: (QuickActionID, QuickActionContext) -> QuickActionResult
 
     @State private var clipboardSearchQuery = ""
+    @State private var quickActionFeedback: String?
 
     init(
         size: CGSize = IslandWindowController.placeholderSize,
@@ -29,7 +32,9 @@ struct IslandPlaceholderView: View {
         onRevealShelfItem: @escaping (UUID) -> Void = { _ in },
         clipboardItems: [ClipboardHistoryItem] = [],
         onCopyClipboardItem: @escaping (UUID) -> Void = { _ in },
-        onDeleteClipboardItem: @escaping (UUID) -> Void = { _ in }
+        onDeleteClipboardItem: @escaping (UUID) -> Void = { _ in },
+        quickActionsProvider: @escaping (QuickActionContext) -> [QuickAction] = { _ in [] },
+        quickActionHandler: @escaping (QuickActionID, QuickActionContext) -> QuickActionResult = { _, _ in .failure("Action unavailable") }
     ) {
         self.size = size
         self.presentation = presentation
@@ -43,6 +48,8 @@ struct IslandPlaceholderView: View {
         self.clipboardItems = clipboardItems
         self.onCopyClipboardItem = onCopyClipboardItem
         self.onDeleteClipboardItem = onDeleteClipboardItem
+        self.quickActionsProvider = quickActionsProvider
+        self.quickActionHandler = quickActionHandler
     }
 
     var body: some View {
@@ -154,6 +161,13 @@ struct IslandPlaceholderView: View {
                 .foregroundStyle(.white.opacity(0.62))
                 .lineLimit(2)
 
+            if let quickActionFeedback {
+                Text(quickActionFeedback)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .lineLimit(1)
+            }
+
             expandedDetail(for: anchor)
 
             homeNavigation
@@ -228,16 +242,7 @@ struct IslandPlaceholderView: View {
 
             Spacer()
 
-            Button(action: { onRevealShelfItem(item.id) }) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(item.isAvailable() ? 0.74 : 0.28))
-                    .frame(width: 25, height: 23)
-            }
-            .buttonStyle(.plain)
-            .background(.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-            .disabled(!item.isAvailable())
+            quickActionButtons(context: .shelf(item), isEnabled: item.isAvailable())
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -305,15 +310,7 @@ struct IslandPlaceholderView: View {
 
             Spacer()
 
-            Button(action: { onCopyClipboardItem(item.id) }) {
-                Image(systemName: "doc.on.doc")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.74))
-                    .frame(width: 25, height: 23)
-            }
-            .buttonStyle(.plain)
-            .background(.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            quickActionButtons(context: .clipboard(item))
 
             Button(action: { onDeleteClipboardItem(item.id) }) {
                 Image(systemName: "trash")
@@ -329,6 +326,29 @@ struct IslandPlaceholderView: View {
         .padding(.vertical, 7)
         .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func quickActionButtons(context: QuickActionContext, isEnabled: Bool = true) -> some View {
+        HStack(spacing: 5) {
+            ForEach(quickActionsProvider(context).prefix(4)) { action in
+                Button(action: { runQuickAction(action.id, context: context) }) {
+                    Image(systemName: action.systemImageName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(isEnabled ? 0.74 : 0.28))
+                        .frame(width: 25, height: 23)
+                }
+                .buttonStyle(.plain)
+                .background(.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .disabled(!isEnabled)
+                .help(action.title)
+            }
+        }
+    }
+
+    private func runQuickAction(_ actionID: QuickActionID, context: QuickActionContext) {
+        let result = quickActionHandler(actionID, context)
+        quickActionFeedback = result.message
     }
 
     private func iconName(for type: ClipboardContentType) -> String {

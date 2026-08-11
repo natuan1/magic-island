@@ -14,6 +14,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mediaRefreshTimer: Timer?
     private var clipboardHistoryFeature = ClipboardHistoryFeature(provider: MacPasteboardClipboardProvider())
     private var clipboardRefreshTimer: Timer?
+    private let quickActionResolver = QuickActionResolver(providers: [
+        ClipboardHistoryFeature<MacPasteboardClipboardProvider>.quickActionProvider,
+        FileShelfFeature.quickActionProvider
+    ])
+    private let quickActionEnvironment = MacQuickActionEnvironment()
+    private lazy var quickActionExecutor = QuickActionExecutor(environment: quickActionEnvironment)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -54,6 +60,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             clipboardDeleteHandler: { [weak self] itemID in
                 self?.deleteClipboardItem(itemID)
+            },
+            quickActionsProvider: { [weak self] context in
+                guard self?.settingsStore.isFeatureEnabled(.quickActions) == true else {
+                    return []
+                }
+                return self?.quickActionResolver.actions(for: context) ?? []
+            },
+            quickActionHandler: { [weak self] actionID, context in
+                self?.performQuickAction(actionID, context: context) ?? .failure("Action unavailable")
             }
         )
         islandWindowController?.show()
@@ -171,6 +186,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             startClipboardRefresh()
         case .fileShelf:
             break
+        case .quickActions:
+            break
         }
     }
 
@@ -181,6 +198,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .clipboardHistory:
             stopClipboardRefresh()
         case .fileShelf:
+            break
+        case .quickActions:
             break
         }
     }
@@ -222,6 +241,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         clipboardHistoryStore.delete(id: itemID)
         islandWindowController?.refreshCurrentActivity()
+    }
+
+    private func performQuickAction(
+        _ actionID: QuickActionID,
+        context: QuickActionContext
+    ) -> QuickActionResult {
+        guard settingsStore.isFeatureEnabled(.quickActions) else {
+            return .failure("Quick Actions disabled")
+        }
+
+        return quickActionExecutor.execute(actionID, in: context)
     }
 
     @objc private func refreshMediaTimerFired() {

@@ -17,6 +17,8 @@ final class IslandWindowController {
     private let clipboardItemsProvider: @MainActor () -> [ClipboardHistoryItem]
     private let clipboardCopyHandler: @MainActor (UUID) -> Void
     private let clipboardDeleteHandler: @MainActor (UUID) -> Void
+    private let quickActionsProvider: @MainActor (QuickActionContext) -> [QuickAction]
+    private let quickActionHandler: @MainActor (QuickActionID, QuickActionContext) -> QuickActionResult
     private var interactionController = IslandInteractionController()
     private var shortcutController: IslandShortcutController?
     private var currentPresentation: IslandPresentation = .passive
@@ -32,7 +34,9 @@ final class IslandWindowController {
         shelfRevealHandler: @escaping @MainActor (UUID) -> Void = { _ in },
         clipboardItemsProvider: @escaping @MainActor () -> [ClipboardHistoryItem] = { [] },
         clipboardCopyHandler: @escaping @MainActor (UUID) -> Void = { _ in },
-        clipboardDeleteHandler: @escaping @MainActor (UUID) -> Void = { _ in }
+        clipboardDeleteHandler: @escaping @MainActor (UUID) -> Void = { _ in },
+        quickActionsProvider: @escaping @MainActor (QuickActionContext) -> [QuickAction] = { _ in [] },
+        quickActionHandler: @escaping @MainActor (QuickActionID, QuickActionContext) -> QuickActionResult = { _, _ in .failure("Action unavailable") }
     ) {
         self.settingsStore = settingsStore
         self.currentActivityProvider = currentActivityProvider
@@ -43,6 +47,8 @@ final class IslandWindowController {
         self.clipboardItemsProvider = clipboardItemsProvider
         self.clipboardCopyHandler = clipboardCopyHandler
         self.clipboardDeleteHandler = clipboardDeleteHandler
+        self.quickActionsProvider = quickActionsProvider
+        self.quickActionHandler = quickActionHandler
 
         let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? screenProvider()
         let placement = IslandPlacement.frame(
@@ -75,7 +81,9 @@ final class IslandWindowController {
                 onRevealShelfItem: shelfRevealHandler,
                 clipboardItems: clipboardItemsProvider(),
                 onCopyClipboardItem: clipboardCopyHandler,
-                onDeleteClipboardItem: clipboardDeleteHandler
+                onDeleteClipboardItem: clipboardDeleteHandler,
+                quickActionsProvider: quickActionsProvider,
+                quickActionHandler: quickActionHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
@@ -249,7 +257,9 @@ final class IslandWindowController {
                 onRevealShelfItem: shelfRevealHandler,
                 clipboardItems: clipboardItemsProvider(),
                 onCopyClipboardItem: clipboardCopyHandler,
-                onDeleteClipboardItem: clipboardDeleteHandler
+                onDeleteClipboardItem: clipboardDeleteHandler,
+                quickActionsProvider: quickActionsProvider,
+                quickActionHandler: quickActionHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
