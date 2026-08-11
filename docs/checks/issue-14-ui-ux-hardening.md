@@ -8,6 +8,7 @@ Automated coverage added:
 - Repeated hover, expand, interaction, and collapse cycles return to passive focus behavior.
 - Core Island icon controls now expose explicit VoiceOver labels and hover help.
 - Hover timers are invalidated when the hosting view is released.
+- Permission Center rows remain in scope for UI/UX hardening, but Media default behavior and Spotify Automation gating are tracked separately in #26. See `docs/checks/issue-28-permission-center-scope.md`.
 
 Manual verification still required before closing the HITL acceptance criteria:
 
