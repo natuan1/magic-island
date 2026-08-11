@@ -32,6 +32,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertTrue(store.isFeatureEnabled(.media))
         XCTAssertTrue(store.isFeatureEnabled(.fileShelf))
+        XCTAssertTrue(store.isFeatureEnabled(.timer))
         XCTAssertFalse(store.isFeatureEnabled(.clipboardHistory))
 
         store.setFeature(.media, enabled: false)

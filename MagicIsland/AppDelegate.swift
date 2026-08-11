@@ -14,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mediaRefreshTimer: Timer?
     private var clipboardHistoryFeature = ClipboardHistoryFeature(provider: MacPasteboardClipboardProvider())
     private var clipboardRefreshTimer: Timer?
+    private var timerFeature = TimerFeature()
+    private var timerRefreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -36,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             mediaCommandHandler: { [weak self] command in
                 self?.performMediaCommand(command)
+            },
+            timerCommandHandler: { [weak self] command in
+                self?.performTimerCommand(command)
             },
             fileShelfItemsProvider: { [weak self] in
                 self?.fileShelfStore.items ?? []
@@ -65,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         stopMediaRefresh()
         stopClipboardRefresh()
+        stopTimerRefresh()
     }
 
     private func startMediaRefresh() {
@@ -102,6 +108,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    private func startTimerRefresh() {
+        guard timerRefreshTimer == nil else {
+            return
+        }
+
+        timerRefreshTimer = Timer.scheduledTimer(
+            timeInterval: 1,
+            target: self,
+            selector: #selector(timerTickFired),
+            userInfo: nil,
+            repeats: true
+        )
+    }
+
+    private func stopTimerRefresh() {
+        timerRefreshTimer?.invalidate()
+        timerRefreshTimer = nil
+    }
+
     private func stopClipboardRefresh() {
         clipboardRefreshTimer?.invalidate()
         clipboardRefreshTimer = nil
@@ -124,12 +149,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         islandWindowController?.refreshCurrentActivity()
     }
 
+    private func refreshTimer() {
+        guard timerFeature.isActive else {
+            return
+        }
+
+        timerFeature.refresh(engine: &activityEngine)
+        islandWindowController?.refreshCurrentActivity()
+    }
+
     private func performMediaCommand(_ command: MediaCommand) {
         mediaFeature.perform(command)
         if !mediaFeature.isEnabled {
             activityEngine.removeActivities(for: MediaFeature<SpotifyMediaProvider>.featureID)
         }
         refreshMedia()
+    }
+
+    private func performTimerCommand(_ command: TimerCommand) {
+        guard settingsStore.isFeatureEnabled(.timer) else {
+            return
+        }
+
+        timerFeature.perform(command, engine: &activityEngine)
+        islandWindowController?.refreshCurrentActivity()
     }
 
     private func openSettings() {
@@ -169,6 +212,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             startMediaRefresh()
         case .clipboardHistory:
             startClipboardRefresh()
+        case .timer:
+            startTimerRefresh()
         case .fileShelf:
             break
         }
@@ -180,6 +225,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopMediaRefresh()
         case .clipboardHistory:
             stopClipboardRefresh()
+        case .timer:
+            stopTimerRefresh()
+            timerFeature.cancel(engine: &activityEngine)
         case .fileShelf:
             break
         }
@@ -230,6 +278,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshClipboardTimerFired() {
         refreshClipboardHistory()
+    }
+
+    @objc private func timerTickFired() {
+        refreshTimer()
     }
 
     private static var isRunningUnitTests: Bool {

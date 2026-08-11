@@ -6,6 +6,7 @@ struct IslandPlaceholderView: View {
     let presentation: IslandPresentation
     let currentActivity: CurrentActivity?
     let onMediaCommand: (MediaCommand) -> Void
+    let onTimerCommand: (TimerCommand) -> Void
     let selectedHomeDestination: HomeDestination?
     let availableHomeDestinations: [HomeDestination]
     let fileShelfItems: [ShelfItem]
@@ -22,6 +23,7 @@ struct IslandPlaceholderView: View {
         presentation: IslandPresentation = .passive,
         currentActivity: CurrentActivity? = nil,
         onMediaCommand: @escaping (MediaCommand) -> Void = { _ in },
+        onTimerCommand: @escaping (TimerCommand) -> Void = { _ in },
         selectedHomeDestination: HomeDestination? = nil,
         availableHomeDestinations: [HomeDestination] = [.media, .fileShelf, .settings],
         fileShelfItems: [ShelfItem] = [],
@@ -35,6 +37,7 @@ struct IslandPlaceholderView: View {
         self.presentation = presentation
         self.currentActivity = currentActivity
         self.onMediaCommand = onMediaCommand
+        self.onTimerCommand = onTimerCommand
         self.selectedHomeDestination = selectedHomeDestination
         self.availableHomeDestinations = availableHomeDestinations
         self.fileShelfItems = fileShelfItems
@@ -168,8 +171,20 @@ struct IslandPlaceholderView: View {
             fileShelfDetail
         case .clipboardHistory:
             clipboardHistoryDetail
+        case .timer:
+            selectedTimerDetail(anchor: anchor)
         case .media, .settings, nil:
             activityDetail(for: anchor)
+        }
+    }
+
+    @ViewBuilder
+    private func selectedTimerDetail(anchor: IslandExpansionAnchor) -> some View {
+        if case .currentActivity(let activity) = anchor,
+           case .timer(let timer) = activity.presentation {
+            timerDetail(timer)
+        } else {
+            timerStartDetail
         }
     }
 
@@ -182,10 +197,39 @@ struct IslandPlaceholderView: View {
                 Spacer(minLength: 0)
             case .media(let media):
                 mediaDetail(media)
+            case .timer(let timer):
+                timerDetail(timer)
             }
         case .idlePlaceholder:
             Spacer(minLength: 0)
         }
+    }
+
+    private var timerStartDetail: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                timerStartButton(title: "5m", duration: 5 * 60)
+                timerStartButton(title: "10m", duration: 10 * 60)
+                timerStartButton(title: "25m", duration: 25 * 60)
+            }
+
+            Text("Start timer")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func timerStartButton(title: String, duration: TimeInterval) -> some View {
+        Button(action: { onTimerCommand(.start(duration)) }) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.82))
+                .frame(width: 54, height: 30)
+        }
+        .buttonStyle(.plain)
+        .background(.white.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private var fileShelfDetail: some View {
@@ -386,6 +430,46 @@ struct IslandPlaceholderView: View {
         }
     }
 
+    private func timerDetail(_ timer: TimerActivity) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(TimerDurationFormatter.string(from: timer.remainingTime))
+                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.92))
+                .monospacedDigit()
+
+            HStack(spacing: 8) {
+                switch timer.state {
+                case .running:
+                    timerCommandButton("pause.fill", command: .pause)
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .cancel)
+                    timerCommandButton("xmark.circle", command: .close)
+                case .paused:
+                    timerCommandButton("play.fill", command: .resume)
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .cancel)
+                    timerCommandButton("xmark.circle", command: .close)
+                case .completed:
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .close)
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func timerCommandButton(_ systemName: String, command: TimerCommand) -> some View {
+        Button(action: { onTimerCommand(command) }) {
+            Image(systemName: systemName)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.82))
+                .frame(width: 34, height: 30)
+        }
+        .buttonStyle(.plain)
+        .background(.white.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
     private func artwork(for media: MediaActivity) -> some View {
         ZStack {
             if let image = image(from: media.artworkData) {
@@ -462,6 +546,8 @@ struct IslandPlaceholderView: View {
             return "folder"
         case .clipboardHistory:
             return "doc.on.clipboard"
+        case .timer:
+            return "timer"
         case .settings:
             return "gearshape"
         }
@@ -503,6 +589,8 @@ struct IslandPlaceholderView: View {
             return activity.title
         case .media(let media):
             return "\(media.title) - \(media.artist)"
+        case .timer(let timer):
+            return TimerDurationFormatter.string(from: timer.remainingTime)
         }
     }
 
@@ -522,6 +610,8 @@ struct IslandPlaceholderView: View {
                 return Color(red: 0.39, green: 0.95, blue: 0.73)
             case .media:
                 return Color(red: 0.95, green: 0.44, blue: 0.53)
+            case .timer:
+                return Color(red: 0.42, green: 0.78, blue: 1.0)
             }
         case .idlePlaceholder:
             return Color(red: 0.39, green: 0.95, blue: 0.73)
@@ -551,5 +641,6 @@ enum HomeDestination: Equatable {
     case media
     case fileShelf
     case clipboardHistory
+    case timer
     case settings
 }
