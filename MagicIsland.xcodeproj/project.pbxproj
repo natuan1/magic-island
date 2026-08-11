@@ -35,6 +35,8 @@
 		3A0000030000000000000002 /* FileShelfStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000030000000000000012 /* FileShelfStoreTests.swift */; };
 		3A0000040000000000000001 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000040000000000000011 /* ClipboardHistory.swift */; };
 		3A0000040000000000000002 /* ClipboardHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000040000000000000012 /* ClipboardHistoryTests.swift */; };
+		3A0000050000000000000001 /* TimerFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000050000000000000011 /* TimerFeature.swift */; };
+		3A0000050000000000000002 /* TimerFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000050000000000000012 /* TimerFeatureTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +80,8 @@
 		3A0000030000000000000012 /* FileShelfStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelfStoreTests.swift; sourceTree = "<group>"; };
 		3A0000040000000000000011 /* ClipboardHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistory.swift; sourceTree = "<group>"; };
 		3A0000040000000000000012 /* ClipboardHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryTests.swift; sourceTree = "<group>"; };
+		3A0000050000000000000011 /* TimerFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerFeature.swift; sourceTree = "<group>"; };
+		3A0000050000000000000012 /* TimerFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +128,7 @@
 				3A0000010000000000000049 /* ActivityEngine.swift */,
 				3A0000010000000000000051 /* SampleFeature.swift */,
 				3A0000010000000000000053 /* MediaFeature.swift */,
+				3A0000050000000000000011 /* TimerFeature.swift */,
 				3A0000030000000000000011 /* FileShelf.swift */,
 				3A0000040000000000000011 /* ClipboardHistory.swift */,
 				3A0000010000000000000045 /* IslandDisplaySelection.swift */,
@@ -143,6 +148,7 @@
 				3A0000010000000000000047 /* IslandInteractionControllerTests.swift */,
 				3A0000010000000000000055 /* ActivityEngineTests.swift */,
 				3A0000010000000000000057 /* MediaFeatureTests.swift */,
+				3A0000050000000000000012 /* TimerFeatureTests.swift */,
 				3A0000020000000000000014 /* SettingsStoreTests.swift */,
 				3A0000020000000000000015 /* FeatureLifecycleControllerTests.swift */,
 				3A0000030000000000000012 /* FileShelfStoreTests.swift */,
@@ -277,6 +283,7 @@
 				3A000001000000000000001F /* ActivityEngine.swift in Sources */,
 				3A0000010000000000000050 /* SampleFeature.swift in Sources */,
 				3A0000010000000000000052 /* MediaFeature.swift in Sources */,
+				3A0000050000000000000001 /* TimerFeature.swift in Sources */,
 				3A0000030000000000000001 /* FileShelf.swift in Sources */,
 				3A0000040000000000000001 /* ClipboardHistory.swift in Sources */,
 				3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */,
@@ -296,6 +303,7 @@
 				3A000001000000000000001D /* IslandInteractionControllerTests.swift in Sources */,
 				3A0000010000000000000054 /* ActivityEngineTests.swift in Sources */,
 				3A0000010000000000000056 /* MediaFeatureTests.swift in Sources */,
+				3A0000050000000000000002 /* TimerFeatureTests.swift in Sources */,
 				3A0000020000000000000004 /* SettingsStoreTests.swift in Sources */,
 				3A0000020000000000000005 /* FeatureLifecycleControllerTests.swift in Sources */,
 				3A0000030000000000000002 /* FileShelfStoreTests.swift in Sources */,

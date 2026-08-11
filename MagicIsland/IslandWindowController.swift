@@ -11,6 +11,7 @@ final class IslandWindowController {
     private let settingsStore: SettingsStore
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
     private let mediaCommandHandler: @MainActor (MediaCommand) -> Void
+    private let timerCommandHandler: @MainActor (TimerCommand) -> Void
     private let fileShelfItemsProvider: @MainActor () -> [ShelfItem]
     private let fileDropHandler: @MainActor ([URL]) -> Void
     private let shelfRevealHandler: @MainActor (UUID) -> Void
@@ -27,6 +28,7 @@ final class IslandWindowController {
         screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
         currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil },
         mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in },
+        timerCommandHandler: @escaping @MainActor (TimerCommand) -> Void = { _ in },
         fileShelfItemsProvider: @escaping @MainActor () -> [ShelfItem] = { [] },
         fileDropHandler: @escaping @MainActor ([URL]) -> Void = { _ in },
         shelfRevealHandler: @escaping @MainActor (UUID) -> Void = { _ in },
@@ -37,6 +39,7 @@ final class IslandWindowController {
         self.settingsStore = settingsStore
         self.currentActivityProvider = currentActivityProvider
         self.mediaCommandHandler = mediaCommandHandler
+        self.timerCommandHandler = timerCommandHandler
         self.fileShelfItemsProvider = fileShelfItemsProvider
         self.fileDropHandler = fileDropHandler
         self.shelfRevealHandler = shelfRevealHandler
@@ -67,6 +70,7 @@ final class IslandWindowController {
                 size: placement.frame.size,
                 currentActivity: currentActivityProvider(),
                 onMediaCommand: mediaCommandHandler,
+                onTimerCommand: timerCommandHandler,
                 availableHomeDestinations: availableHomeDestinations(),
                 fileShelfItems: fileShelfItemsProvider(),
                 onHomeSelection: { [weak self] destination in
@@ -207,6 +211,9 @@ final class IslandWindowController {
         if settingsStore.isFeatureEnabled(.clipboardHistory) {
             destinations.append(.clipboardHistory)
         }
+        if settingsStore.isFeatureEnabled(.timer) {
+            destinations.append(.timer)
+        }
         destinations.append(.settings)
         return destinations
     }
@@ -240,6 +247,7 @@ final class IslandWindowController {
                 presentation: presentation,
                 currentActivity: currentActivityProvider(),
                 onMediaCommand: mediaCommandHandler,
+                onTimerCommand: timerCommandHandler,
                 selectedHomeDestination: selectedHomeDestination,
                 availableHomeDestinations: availableHomeDestinations(),
                 fileShelfItems: fileShelfItemsProvider(),

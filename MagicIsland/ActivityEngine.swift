@@ -28,6 +28,7 @@ struct Activity: Equatable, Identifiable {
 enum ActivityPresentation: Equatable {
     case generic(title: String, subtitle: String)
     case media(MediaActivity)
+    case timer(TimerActivity)
 
     var title: String {
         switch self {
@@ -35,6 +36,8 @@ enum ActivityPresentation: Equatable {
             return title
         case .media(let media):
             return media.title
+        case .timer:
+            return "Timer"
         }
     }
 
@@ -46,6 +49,15 @@ enum ActivityPresentation: Equatable {
             return [media.artist, media.appName]
                 .filter { !$0.isEmpty }
                 .joined(separator: " - ")
+        case .timer(let timer):
+            switch timer.state {
+            case .running:
+                return "\(TimerDurationFormatter.string(from: timer.remainingTime)) remaining"
+            case .paused:
+                return "Paused at \(TimerDurationFormatter.string(from: timer.remainingTime))"
+            case .completed:
+                return "Done"
+            }
         }
     }
 }
@@ -90,4 +102,3 @@ struct ActivityEngine {
         return lhs.startedAt > rhs.startedAt
     }
 }
-
