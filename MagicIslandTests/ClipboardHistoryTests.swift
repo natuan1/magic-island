@@ -92,6 +92,26 @@ final class ClipboardHistoryTests: XCTestCase {
         XCTAssertEqual(store.items.map(\.title), ["Deploy notes"])
     }
 
+    func testRepeatedClipboardCapturesDeduplicateAndKeepPollingStateBounded() {
+        let defaults = UserDefaults(suiteName: "ClipboardHistoryTests.\(UUID().uuidString)")!
+        let settingsStore = SettingsStore(defaults: defaults)
+        settingsStore.setFeature(.clipboardHistory, enabled: true)
+        let provider = SpyClipboardProvider(changeCount: 0, nextSnapshot: snapshot("Repeated"))
+        var feature = ClipboardHistoryFeature(provider: provider)
+        let store = ClipboardHistoryStore()
+
+        feature.start()
+
+        for changeCount in 1...1_000 {
+            provider.changeCount = changeCount
+            XCTAssertEqual(feature.poll(store: store, settingsStore: settingsStore), changeCount == 1)
+        }
+
+        XCTAssertEqual(provider.snapshotReadCount, 1_000)
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(store.items.first?.title, "Repeated")
+    }
+
     private func snapshot(_ text: String) -> ClipboardSnapshot {
         ClipboardSnapshot(
             type: .text,
