@@ -27,9 +27,9 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
 
     var isEnabledByDefault: Bool {
         switch self {
-        case .media, .fileShelf, .timer, .quickActions:
+        case .fileShelf, .timer, .quickActions:
             return true
-        case .clipboardHistory:
+        case .media, .clipboardHistory:
             return false
         }
     }
@@ -70,6 +70,10 @@ final class SettingsStore {
 
         static func featureEnabled(_ featureID: FeatureID) -> String {
             "settings.feature.\(featureID.rawValue).enabled"
+        }
+
+        static func permissionGrantState(_ permissionID: PermissionID) -> String {
+            "settings.permission.\(permissionID.rawValue).grantState"
         }
     }
 
@@ -143,5 +147,13 @@ final class SettingsStore {
 
     func setFeature(_ featureID: FeatureID, enabled: Bool) {
         defaults.set(enabled, forKey: Key.featureEnabled(featureID))
+    }
+
+    func permissionGrantState(_ permissionID: PermissionID) -> PermissionGrantState {
+        PermissionGrantState(rawValue: defaults.string(forKey: Key.permissionGrantState(permissionID)) ?? "") ?? .notDetermined
+    }
+
+    func setPermissionGrantState(_ permissionID: PermissionID, _ state: PermissionGrantState) {
+        defaults.set(state.rawValue, forKey: Key.permissionGrantState(permissionID))
     }
 }

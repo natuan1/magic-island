@@ -4,11 +4,10 @@ import XCTest
 
 final class ProductShellTests: XCTestCase {
     func testMenuModelIncludesCoreCommandsAndFeatures() {
-        let model = StatusBarMenuModel.core(featureIDs: [.media, .fileShelf, .clipboardHistory])
+        let model = StatusBarMenuModel.core(featureIDs: [.fileShelf, .clipboardHistory])
 
         XCTAssertEqual(model.items.map(\.title), [
             "Show Island",
-            "Media",
             "File Shelf",
             "Clipboard History",
             "Settings...",

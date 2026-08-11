@@ -2,10 +2,15 @@ import Foundation
 
 struct FeatureLifecycleController {
     private let settingsStore: SettingsStore
+    private let permissionAuthorizer: PermissionAuthorizing
     private var activeFeatureIDs: Set<FeatureID> = []
 
-    init(settingsStore: SettingsStore) {
+    init(
+        settingsStore: SettingsStore,
+        permissionAuthorizer: PermissionAuthorizing = NativePermissionAuthorizer()
+    ) {
         self.settingsStore = settingsStore
+        self.permissionAuthorizer = permissionAuthorizer
     }
 
     mutating func sync(
@@ -18,6 +23,14 @@ struct FeatureLifecycleController {
             let isRunning = activeFeatureIDs.contains(featureID)
 
             if shouldRun, !isRunning {
+                guard PermissionCenter.requestRequiredPermissions(
+                    for: featureID,
+                    settingsStore: settingsStore,
+                    authorizer: permissionAuthorizer
+                ) else {
+                    continue
+                }
+
                 activeFeatureIDs.insert(featureID)
                 startFeature(featureID)
             } else if !shouldRun, isRunning {
