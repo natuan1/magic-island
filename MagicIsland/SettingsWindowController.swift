@@ -69,6 +69,7 @@ private struct SettingsView: View {
 
     @State private var mediaEnabled: Bool
     @State private var fileShelfEnabled: Bool
+    @State private var clipboardHistoryEnabled: Bool
     @State private var hoverDelay: Double
     @State private var displayRawValue: String
     @State private var clipboardRetentionDays: Int
@@ -83,6 +84,7 @@ private struct SettingsView: View {
         self.onSettingsChanged = onSettingsChanged
         _mediaEnabled = State(initialValue: settingsStore.isFeatureEnabled(.media))
         _fileShelfEnabled = State(initialValue: settingsStore.isFeatureEnabled(.fileShelf))
+        _clipboardHistoryEnabled = State(initialValue: settingsStore.isFeatureEnabled(.clipboardHistory))
         _hoverDelay = State(initialValue: settingsStore.hoverDelay)
         _displayRawValue = State(initialValue: settingsStore.displayPreference.rawValue)
         _clipboardRetentionDays = State(initialValue: settingsStore.clipboardRetentionDays)
@@ -117,6 +119,11 @@ private struct SettingsView: View {
             Toggle("File Shelf", isOn: $fileShelfEnabled)
                 .onChange(of: fileShelfEnabled) { _, value in
                     settingsStore.setFeature(.fileShelf, enabled: value)
+                    onSettingsChanged()
+                }
+            Toggle("Clipboard History", isOn: $clipboardHistoryEnabled)
+                .onChange(of: clipboardHistoryEnabled) { _, value in
+                    settingsStore.setFeature(.clipboardHistory, enabled: value)
                     onSettingsChanged()
                 }
         }

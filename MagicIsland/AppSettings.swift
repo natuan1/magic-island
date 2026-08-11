@@ -4,6 +4,7 @@ import Foundation
 enum FeatureID: String, CaseIterable, Equatable, Identifiable {
     case media
     case fileShelf
+    case clipboardHistory
 
     var id: String { rawValue }
 
@@ -13,6 +14,8 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
             return "Media"
         case .fileShelf:
             return "File Shelf"
+        case .clipboardHistory:
+            return "Clipboard History"
         }
     }
 
@@ -20,6 +23,8 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
         switch self {
         case .media, .fileShelf:
             return true
+        case .clipboardHistory:
+            return false
         }
     }
 }

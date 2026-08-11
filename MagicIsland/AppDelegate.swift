@@ -9,8 +9,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settingsStore = SettingsStore()
     private var featureLifecycleController: FeatureLifecycleController?
     private let fileShelfStore = FileShelfStore()
+    private let clipboardHistoryStore = ClipboardHistoryStore()
     private var mediaFeature = MediaFeature(provider: SpotifyMediaProvider())
     private var mediaRefreshTimer: Timer?
+    private var clipboardHistoryFeature = ClipboardHistoryFeature(provider: MacPasteboardClipboardProvider())
+    private var clipboardRefreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -42,6 +45,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             shelfRevealHandler: { [weak self] itemID in
                 self?.revealShelfItem(itemID)
+            },
+            clipboardItemsProvider: { [weak self] in
+                self?.clipboardHistoryStore.items ?? []
+            },
+            clipboardCopyHandler: { [weak self] itemID in
+                self?.copyClipboardItem(itemID)
+            },
+            clipboardDeleteHandler: { [weak self] itemID in
+                self?.deleteClipboardItem(itemID)
             }
         )
         islandWindowController?.show()
@@ -52,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         stopMediaRefresh()
+        stopClipboardRefresh()
     }
 
     private func startMediaRefresh() {
@@ -74,6 +87,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mediaRefreshTimer = nil
     }
 
+    private func startClipboardRefresh() {
+        guard clipboardRefreshTimer == nil else {
+            return
+        }
+
+        clipboardHistoryFeature.start()
+        clipboardRefreshTimer = Timer.scheduledTimer(
+            timeInterval: 1,
+            target: self,
+            selector: #selector(refreshClipboardTimerFired),
+            userInfo: nil,
+            repeats: true
+        )
+    }
+
+    private func stopClipboardRefresh() {
+        clipboardRefreshTimer?.invalidate()
+        clipboardRefreshTimer = nil
+        clipboardHistoryFeature.stop()
+    }
+
+    private func refreshClipboardHistory() {
+        let changed = clipboardHistoryFeature.poll(
+            store: clipboardHistoryStore,
+            settingsStore: settingsStore
+        )
+
+        if changed {
+            islandWindowController?.refreshCurrentActivity()
+        }
+    }
+
     private func refreshMedia() {
         mediaFeature.refresh(engine: &activityEngine)
         islandWindowController?.refreshCurrentActivity()
@@ -93,7 +138,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func settingsChanged() {
         syncFeatureLifecycles()
+        applyClipboardRetention()
         islandWindowController?.settingsChanged()
+        islandWindowController?.refreshCurrentActivity()
+    }
+
+    private func applyClipboardRetention() {
+        guard clipboardHistoryStore.purgeExpired(retentionDays: settingsStore.clipboardRetentionDays) else {
+            return
+        }
+
         islandWindowController?.refreshCurrentActivity()
     }
 
@@ -113,6 +167,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch featureID {
         case .media:
             startMediaRefresh()
+        case .clipboardHistory:
+            startClipboardRefresh()
         case .fileShelf:
             break
         }
@@ -122,6 +178,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch featureID {
         case .media:
             stopMediaRefresh()
+        case .clipboardHistory:
+            stopClipboardRefresh()
         case .fileShelf:
             break
         }
@@ -145,8 +203,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
+    private func copyClipboardItem(_ itemID: UUID) {
+        guard settingsStore.isFeatureEnabled(.clipboardHistory) else {
+            return
+        }
+
+        guard let item = clipboardHistoryStore.items.first(where: { $0.id == itemID }) else {
+            return
+        }
+
+        clipboardHistoryFeature.copy(item)
+    }
+
+    private func deleteClipboardItem(_ itemID: UUID) {
+        guard settingsStore.isFeatureEnabled(.clipboardHistory) else {
+            return
+        }
+
+        clipboardHistoryStore.delete(id: itemID)
+        islandWindowController?.refreshCurrentActivity()
+    }
+
     @objc private func refreshMediaTimerFired() {
         refreshMedia()
+    }
+
+    @objc private func refreshClipboardTimerFired() {
+        refreshClipboardHistory()
     }
 
     private static var isRunningUnitTests: Bool {
