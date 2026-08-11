@@ -68,6 +68,9 @@ private struct SettingsView: View {
     let onSettingsChanged: () -> Void
 
     @State private var mediaEnabled: Bool
+    @State private var fileShelfEnabled: Bool
+    @State private var clipboardHistoryEnabled: Bool
+    @State private var timerEnabled: Bool
     @State private var hoverDelay: Double
     @State private var displayRawValue: String
     @State private var clipboardRetentionDays: Int
@@ -81,6 +84,9 @@ private struct SettingsView: View {
         self.displays = displays
         self.onSettingsChanged = onSettingsChanged
         _mediaEnabled = State(initialValue: settingsStore.isFeatureEnabled(.media))
+        _fileShelfEnabled = State(initialValue: settingsStore.isFeatureEnabled(.fileShelf))
+        _clipboardHistoryEnabled = State(initialValue: settingsStore.isFeatureEnabled(.clipboardHistory))
+        _timerEnabled = State(initialValue: settingsStore.isFeatureEnabled(.timer))
         _hoverDelay = State(initialValue: settingsStore.hoverDelay)
         _displayRawValue = State(initialValue: settingsStore.displayPreference.rawValue)
         _clipboardRetentionDays = State(initialValue: settingsStore.clipboardRetentionDays)
@@ -110,6 +116,21 @@ private struct SettingsView: View {
             Toggle("Media", isOn: $mediaEnabled)
                 .onChange(of: mediaEnabled) { _, value in
                     settingsStore.setFeature(.media, enabled: value)
+                    onSettingsChanged()
+                }
+            Toggle("File Shelf", isOn: $fileShelfEnabled)
+                .onChange(of: fileShelfEnabled) { _, value in
+                    settingsStore.setFeature(.fileShelf, enabled: value)
+                    onSettingsChanged()
+                }
+            Toggle("Clipboard History", isOn: $clipboardHistoryEnabled)
+                .onChange(of: clipboardHistoryEnabled) { _, value in
+                    settingsStore.setFeature(.clipboardHistory, enabled: value)
+                    onSettingsChanged()
+                }
+            Toggle("Timer", isOn: $timerEnabled)
+                .onChange(of: timerEnabled) { _, value in
+                    settingsStore.setFeature(.timer, enabled: value)
                     onSettingsChanged()
                 }
         }

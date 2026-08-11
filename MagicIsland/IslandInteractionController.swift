@@ -5,6 +5,7 @@ enum IslandInteractionState: Equatable {
     case peeking
     case expanded
     case interacting
+    case dragTarget
     case collapsing
 }
 
@@ -16,6 +17,7 @@ enum IslandExpansionAnchor: Equatable {
 enum IslandPresentation: Equatable {
     case passive
     case peek
+    case dragTarget
     case expanded(anchor: IslandExpansionAnchor)
     case collapsing
 }
@@ -45,6 +47,24 @@ struct IslandInteractionController {
 
     mutating func hoverExited() -> IslandTransition {
         guard state == .peeking else {
+            return transition(for: state)
+        }
+
+        state = .passive
+        return transition(for: state)
+    }
+
+    mutating func dragEntered() -> IslandTransition {
+        guard state == .passive || state == .peeking else {
+            return transition(for: state)
+        }
+
+        state = .dragTarget
+        return transition(for: state)
+    }
+
+    mutating func dragExited() -> IslandTransition {
+        guard state == .dragTarget else {
             return transition(for: state)
         }
 
@@ -100,6 +120,8 @@ struct IslandInteractionController {
             return IslandTransition(presentation: .passive, focusBehavior: .passive)
         case .peeking:
             return IslandTransition(presentation: .peek, focusBehavior: .passive)
+        case .dragTarget:
+            return IslandTransition(presentation: .dragTarget, focusBehavior: .passive)
         case .expanded:
             return IslandTransition(
                 presentation: .expanded(anchor: expandedAnchor),

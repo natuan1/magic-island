@@ -6,20 +6,46 @@ struct IslandPlaceholderView: View {
     let presentation: IslandPresentation
     let currentActivity: CurrentActivity?
     let onMediaCommand: (MediaCommand) -> Void
+    let onTimerCommand: (TimerCommand) -> Void
+    let selectedHomeDestination: HomeDestination?
+    let availableHomeDestinations: [HomeDestination]
+    let fileShelfItems: [ShelfItem]
     let onHomeSelection: (HomeDestination) -> Void
+    let onRevealShelfItem: (UUID) -> Void
+    let clipboardItems: [ClipboardHistoryItem]
+    let onCopyClipboardItem: (UUID) -> Void
+    let onDeleteClipboardItem: (UUID) -> Void
+
+    @State private var clipboardSearchQuery = ""
 
     init(
         size: CGSize = IslandWindowController.placeholderSize,
         presentation: IslandPresentation = .passive,
         currentActivity: CurrentActivity? = nil,
         onMediaCommand: @escaping (MediaCommand) -> Void = { _ in },
-        onHomeSelection: @escaping (HomeDestination) -> Void = { _ in }
+        onTimerCommand: @escaping (TimerCommand) -> Void = { _ in },
+        selectedHomeDestination: HomeDestination? = nil,
+        availableHomeDestinations: [HomeDestination] = [.media, .fileShelf, .settings],
+        fileShelfItems: [ShelfItem] = [],
+        onHomeSelection: @escaping (HomeDestination) -> Void = { _ in },
+        onRevealShelfItem: @escaping (UUID) -> Void = { _ in },
+        clipboardItems: [ClipboardHistoryItem] = [],
+        onCopyClipboardItem: @escaping (UUID) -> Void = { _ in },
+        onDeleteClipboardItem: @escaping (UUID) -> Void = { _ in }
     ) {
         self.size = size
         self.presentation = presentation
         self.currentActivity = currentActivity
         self.onMediaCommand = onMediaCommand
+        self.onTimerCommand = onTimerCommand
+        self.selectedHomeDestination = selectedHomeDestination
+        self.availableHomeDestinations = availableHomeDestinations
+        self.fileShelfItems = fileShelfItems
         self.onHomeSelection = onHomeSelection
+        self.onRevealShelfItem = onRevealShelfItem
+        self.clipboardItems = clipboardItems
+        self.onCopyClipboardItem = onCopyClipboardItem
+        self.onDeleteClipboardItem = onDeleteClipboardItem
     }
 
     var body: some View {
@@ -45,6 +71,8 @@ struct IslandPlaceholderView: View {
             compactContent(isPeeking: false)
         case .peek:
             compactContent(isPeeking: true)
+        case .dragTarget:
+            dragTargetContent
         case .expanded(let anchor):
             expandedContent(anchor: anchor)
         }
@@ -54,7 +82,7 @@ struct IslandPlaceholderView: View {
         switch presentation {
         case .expanded:
             return 22
-        case .passive, .peek, .collapsing:
+        case .passive, .peek, .dragTarget, .collapsing:
             return size.height / 2
         }
     }
@@ -65,6 +93,8 @@ struct IslandPlaceholderView: View {
             return "Magic Island passive"
         case .peek:
             return "Magic Island peek"
+        case .dragTarget:
+            return "Magic Island drag target"
         case .expanded:
             return "Magic Island expanded"
         case .collapsing:
@@ -93,6 +123,20 @@ struct IslandPlaceholderView: View {
         .padding(.horizontal, 12)
     }
 
+    private var dragTargetContent: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "tray.and.arrow.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color(red: 0.39, green: 0.95, blue: 0.73))
+
+            Text("Drop files")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.88))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 14)
+    }
+
     private func expandedContent(anchor: IslandExpansionAnchor) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -113,11 +157,35 @@ struct IslandPlaceholderView: View {
                 .foregroundStyle(.white.opacity(0.62))
                 .lineLimit(2)
 
-            activityDetail(for: anchor)
+            expandedDetail(for: anchor)
 
             homeNavigation
         }
         .padding(22)
+    }
+
+    @ViewBuilder
+    private func expandedDetail(for anchor: IslandExpansionAnchor) -> some View {
+        switch selectedHomeDestination {
+        case .fileShelf:
+            fileShelfDetail
+        case .clipboardHistory:
+            clipboardHistoryDetail
+        case .timer:
+            selectedTimerDetail(anchor: anchor)
+        case .media, .settings, nil:
+            activityDetail(for: anchor)
+        }
+    }
+
+    @ViewBuilder
+    private func selectedTimerDetail(anchor: IslandExpansionAnchor) -> some View {
+        if case .currentActivity(let activity) = anchor,
+           case .timer(let timer) = activity.presentation {
+            timerDetail(timer)
+        } else {
+            timerStartDetail
+        }
     }
 
     @ViewBuilder
@@ -129,9 +197,194 @@ struct IslandPlaceholderView: View {
                 Spacer(minLength: 0)
             case .media(let media):
                 mediaDetail(media)
+            case .timer(let timer):
+                timerDetail(timer)
             }
         case .idlePlaceholder:
             Spacer(minLength: 0)
+        }
+    }
+
+    private var timerStartDetail: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                timerStartButton(title: "5m", duration: 5 * 60)
+                timerStartButton(title: "10m", duration: 10 * 60)
+                timerStartButton(title: "25m", duration: 25 * 60)
+            }
+
+            Text("Start timer")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func timerStartButton(title: String, duration: TimeInterval) -> some View {
+        Button(action: { onTimerCommand(.start(duration)) }) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.82))
+                .frame(width: 54, height: 30)
+        }
+        .buttonStyle(.plain)
+        .background(.white.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
+    private var fileShelfDetail: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if fileShelfItems.isEmpty {
+                Text("File Shelf empty")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(fileShelfItems) { item in
+                            shelfRow(item)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func shelfRow(_ item: ShelfItem) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: item.isAvailable() ? "doc" : "exclamationmark.triangle")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(item.isAvailable() ? .white.opacity(0.72) : Color(red: 0.95, green: 0.72, blue: 0.32))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(item.isAvailable() ? 0.86 : 0.42))
+                    .lineLimit(1)
+                Text(item.isAvailable() ? "\(item.typeDescription) reference" : "Missing source")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.46))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button(action: { onRevealShelfItem(item.id) }) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(item.isAvailable() ? 0.74 : 0.28))
+                    .frame(width: 25, height: 23)
+            }
+            .buttonStyle(.plain)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .disabled(!item.isAvailable())
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .onDrag {
+            NSItemProvider(contentsOf: item.url) ?? NSItemProvider(object: item.url.path as NSString)
+        }
+    }
+
+    private var clipboardHistoryDetail: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Search", text: $clipboardSearchQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.86))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            let visibleItems = filteredClipboardItems
+            if visibleItems.isEmpty {
+                Text("Clipboard History empty")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ForEach(visibleItems.prefix(3)) { item in
+                    clipboardRow(item)
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var filteredClipboardItems: [ClipboardHistoryItem] {
+        let query = clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return clipboardItems
+        }
+
+        return clipboardItems.filter {
+            $0.searchableText.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private func clipboardRow(_ item: ClipboardHistoryItem) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: iconName(for: item.type))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.72))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(1)
+                Text(item.type.title)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.46))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button(action: { onCopyClipboardItem(item.id) }) {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.74))
+                    .frame(width: 25, height: 23)
+            }
+            .buttonStyle(.plain)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+
+            Button(action: { onDeleteClipboardItem(item.id) }) {
+                Image(systemName: "trash")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.64))
+                    .frame(width: 25, height: 23)
+            }
+            .buttonStyle(.plain)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func iconName(for type: ClipboardContentType) -> String {
+        switch type {
+        case .text:
+            return "text.alignleft"
+        case .url:
+            return "link"
+        case .image:
+            return "photo"
+        case .fileReference:
+            return "doc"
         }
     }
 
@@ -175,6 +428,46 @@ struct IslandPlaceholderView: View {
                 }
             }
         }
+    }
+
+    private func timerDetail(_ timer: TimerActivity) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(TimerDurationFormatter.string(from: timer.remainingTime))
+                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.92))
+                .monospacedDigit()
+
+            HStack(spacing: 8) {
+                switch timer.state {
+                case .running:
+                    timerCommandButton("pause.fill", command: .pause)
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .cancel)
+                    timerCommandButton("xmark.circle", command: .close)
+                case .paused:
+                    timerCommandButton("play.fill", command: .resume)
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .cancel)
+                    timerCommandButton("xmark.circle", command: .close)
+                case .completed:
+                    timerCommandButton("arrow.clockwise", command: .restart)
+                    timerCommandButton("xmark", command: .close)
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func timerCommandButton(_ systemName: String, command: TimerCommand) -> some View {
+        Button(action: { onTimerCommand(command) }) {
+            Image(systemName: systemName)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.82))
+                .frame(width: 34, height: 30)
+        }
+        .buttonStyle(.plain)
+        .background(.white.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private func artwork(for media: MediaActivity) -> some View {
@@ -239,10 +532,24 @@ struct IslandPlaceholderView: View {
 
     private var homeNavigation: some View {
         HStack(spacing: 8) {
-            homeNavigationItem(.media, systemName: "music.note")
-            homeNavigationItem(.fileShelf, systemName: "folder")
-            homeNavigationItem(.clipboardHistory, systemName: "doc.on.clipboard")
-            homeNavigationItem(.settings, systemName: "gearshape")
+            ForEach(availableHomeDestinations, id: \.self) { destination in
+                homeNavigationItem(destination, systemName: iconName(for: destination))
+            }
+        }
+    }
+
+    private func iconName(for destination: HomeDestination) -> String {
+        switch destination {
+        case .media:
+            return "music.note"
+        case .fileShelf:
+            return "folder"
+        case .clipboardHistory:
+            return "doc.on.clipboard"
+        case .timer:
+            return "timer"
+        case .settings:
+            return "gearshape"
         }
     }
 
@@ -282,6 +589,8 @@ struct IslandPlaceholderView: View {
             return activity.title
         case .media(let media):
             return "\(media.title) - \(media.artist)"
+        case .timer(let timer):
+            return TimerDurationFormatter.string(from: timer.remainingTime)
         }
     }
 
@@ -301,6 +610,8 @@ struct IslandPlaceholderView: View {
                 return Color(red: 0.39, green: 0.95, blue: 0.73)
             case .media:
                 return Color(red: 0.95, green: 0.44, blue: 0.53)
+            case .timer:
+                return Color(red: 0.42, green: 0.78, blue: 1.0)
             }
         case .idlePlaceholder:
             return Color(red: 0.39, green: 0.95, blue: 0.73)
@@ -330,5 +641,6 @@ enum HomeDestination: Equatable {
     case media
     case fileShelf
     case clipboardHistory
+    case timer
     case settings
 }
