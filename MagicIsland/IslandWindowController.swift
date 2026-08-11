@@ -11,19 +11,29 @@ final class IslandWindowController {
     private let settingsStore: SettingsStore
     private let currentActivityProvider: @MainActor () -> CurrentActivity?
     private let mediaCommandHandler: @MainActor (MediaCommand) -> Void
+    private let fileShelfItemsProvider: @MainActor () -> [ShelfItem]
+    private let fileDropHandler: @MainActor ([URL]) -> Void
+    private let shelfRevealHandler: @MainActor (UUID) -> Void
     private var interactionController = IslandInteractionController()
     private var shortcutController: IslandShortcutController?
     private var currentPresentation: IslandPresentation = .passive
+    private var selectedHomeDestination: HomeDestination?
 
     init(
         settingsStore: SettingsStore = SettingsStore(),
         screenProvider: @MainActor () -> NSScreen? = IslandWindowController.primaryDisplay,
         currentActivityProvider: @escaping @MainActor () -> CurrentActivity? = { nil },
-        mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in }
+        mediaCommandHandler: @escaping @MainActor (MediaCommand) -> Void = { _ in },
+        fileShelfItemsProvider: @escaping @MainActor () -> [ShelfItem] = { [] },
+        fileDropHandler: @escaping @MainActor ([URL]) -> Void = { _ in },
+        shelfRevealHandler: @escaping @MainActor (UUID) -> Void = { _ in }
     ) {
         self.settingsStore = settingsStore
         self.currentActivityProvider = currentActivityProvider
         self.mediaCommandHandler = mediaCommandHandler
+        self.fileShelfItemsProvider = fileShelfItemsProvider
+        self.fileDropHandler = fileDropHandler
+        self.shelfRevealHandler = shelfRevealHandler
 
         let screen = Self.selectedDisplay(settingsStore: settingsStore) ?? screenProvider()
         let placement = IslandPlacement.frame(
@@ -47,7 +57,13 @@ final class IslandWindowController {
             rootView: IslandPlaceholderView(
                 size: placement.frame.size,
                 currentActivity: currentActivityProvider(),
-                onMediaCommand: mediaCommandHandler
+                onMediaCommand: mediaCommandHandler,
+                availableHomeDestinations: availableHomeDestinations(),
+                fileShelfItems: fileShelfItemsProvider(),
+                onHomeSelection: { [weak self] destination in
+                    self?.selectHomeDestination(destination)
+                },
+                onRevealShelfItem: shelfRevealHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
@@ -58,6 +74,21 @@ final class IslandWindowController {
             },
             onCommit: { [weak self] in
                 self?.commitFromClick()
+            },
+            onDragEntered: { [weak self] in
+                guard self?.canUseFileShelf() == true else {
+                    return
+                }
+                self?.apply(self?.interactionController.dragEntered())
+            },
+            onDragExited: { [weak self] in
+                self?.apply(self?.interactionController.dragExited())
+            },
+            onFilesDropped: { [weak self] urls in
+                self?.finishFileDrop(urls)
+            },
+            canAcceptFiles: { [weak self] in
+                self?.canUseFileShelf() == true
             }
         )
 
@@ -81,12 +112,18 @@ final class IslandWindowController {
             currentPresentation = currentActivityProvider()
                 .map { .expanded(anchor: .currentActivity($0)) }
                 ?? .expanded(anchor: .idlePlaceholder)
-        case .passive, .peek, .collapsing:
+        case .passive, .peek, .dragTarget, .collapsing:
             break
         }
 
         let size = Self.size(for: currentPresentation)
         panel.contentView = makeContentView(size: size, presentation: currentPresentation)
+    }
+
+    func showFileShelf() {
+        selectedHomeDestination = .fileShelf
+        let transition = interactionController.click(currentActivity: currentActivityProvider())
+        apply(transition)
     }
 
     func settingsChanged() {
@@ -109,6 +146,7 @@ final class IslandWindowController {
     }
 
     private func commitFromClick() {
+        selectedHomeDestination = nil
         let transition = interactionController.click(
             currentActivity: currentActivityProvider()
         )
@@ -116,6 +154,7 @@ final class IslandWindowController {
     }
 
     private func commitFromShortcut() {
+        selectedHomeDestination = nil
         let transition = interactionController.shortcutPressed(
             currentActivity: currentActivityProvider()
         )
@@ -125,6 +164,36 @@ final class IslandWindowController {
     private func collapse() {
         apply(interactionController.collapse())
         apply(interactionController.finishCollapse())
+    }
+
+    private func selectHomeDestination(_ destination: HomeDestination) {
+        guard availableHomeDestinations().contains(destination) else {
+            return
+        }
+
+        selectedHomeDestination = destination
+        apply(interactionController.beginInteracting())
+    }
+
+    private func finishFileDrop(_ urls: [URL]) {
+        apply(interactionController.dragExited())
+        fileDropHandler(urls)
+    }
+
+    private func canUseFileShelf() -> Bool {
+        settingsStore.isFeatureEnabled(.fileShelf)
+    }
+
+    private func availableHomeDestinations() -> [HomeDestination] {
+        var destinations: [HomeDestination] = []
+        if settingsStore.isFeatureEnabled(.media) {
+            destinations.append(.media)
+        }
+        if settingsStore.isFeatureEnabled(.fileShelf) {
+            destinations.append(.fileShelf)
+        }
+        destinations.append(.settings)
+        return destinations
     }
 
     private func apply(_ transition: IslandTransition?) {
@@ -155,7 +224,14 @@ final class IslandWindowController {
                 size: size,
                 presentation: presentation,
                 currentActivity: currentActivityProvider(),
-                onMediaCommand: mediaCommandHandler
+                onMediaCommand: mediaCommandHandler,
+                selectedHomeDestination: selectedHomeDestination,
+                availableHomeDestinations: availableHomeDestinations(),
+                fileShelfItems: fileShelfItemsProvider(),
+                onHomeSelection: { [weak self] destination in
+                    self?.selectHomeDestination(destination)
+                },
+                onRevealShelfItem: shelfRevealHandler
             ),
             hoverDelay: settingsStore.hoverDelay,
             onHoverEntered: { [weak self] in
@@ -166,6 +242,21 @@ final class IslandWindowController {
             },
             onCommit: { [weak self] in
                 self?.commitFromClick()
+            },
+            onDragEntered: { [weak self] in
+                guard self?.canUseFileShelf() == true else {
+                    return
+                }
+                self?.apply(self?.interactionController.dragEntered())
+            },
+            onDragExited: { [weak self] in
+                self?.apply(self?.interactionController.dragExited())
+            },
+            onFilesDropped: { [weak self] urls in
+                self?.finishFileDrop(urls)
+            },
+            canAcceptFiles: { [weak self] in
+                self?.canUseFileShelf() == true
             }
         )
     }
@@ -182,7 +273,7 @@ final class IslandWindowController {
 
     private static func size(for presentation: IslandPresentation) -> CGSize {
         switch presentation {
-        case .passive, .collapsing:
+        case .passive, .dragTarget, .collapsing:
             return placeholderSize
         case .peek:
             return peekSize
@@ -253,6 +344,10 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
     private let onHoverEntered: @MainActor () -> Void
     private let onHoverExited: @MainActor () -> Void
     private let onCommit: @MainActor () -> Void
+    private let onDragEntered: @MainActor () -> Void
+    private let onDragExited: @MainActor () -> Void
+    private let onFilesDropped: @MainActor ([URL]) -> Void
+    private let canAcceptFiles: @MainActor () -> Bool
     private var hoverTimer: Timer?
 
     init(
@@ -260,13 +355,22 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
         hoverDelay: TimeInterval,
         onHoverEntered: @escaping @MainActor () -> Void,
         onHoverExited: @escaping @MainActor () -> Void,
-        onCommit: @escaping @MainActor () -> Void
+        onCommit: @escaping @MainActor () -> Void,
+        onDragEntered: @escaping @MainActor () -> Void,
+        onDragExited: @escaping @MainActor () -> Void,
+        onFilesDropped: @escaping @MainActor ([URL]) -> Void,
+        canAcceptFiles: @escaping @MainActor () -> Bool
     ) {
         self.hoverDelay = hoverDelay
         self.onHoverEntered = onHoverEntered
         self.onHoverExited = onHoverExited
         self.onCommit = onCommit
+        self.onDragEntered = onDragEntered
+        self.onDragExited = onDragExited
+        self.onFilesDropped = onFilesDropped
+        self.canAcceptFiles = canAcceptFiles
         super.init(rootView: rootView)
+        registerForDraggedTypes([.fileURL])
     }
 
     required init(rootView: Content) {
@@ -274,7 +378,12 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
         onHoverEntered = {}
         onHoverExited = {}
         onCommit = {}
+        onDragEntered = {}
+        onDragExited = {}
+        onFilesDropped = { _ in }
+        canAcceptFiles = { false }
         super.init(rootView: rootView)
+        registerForDraggedTypes([.fileURL])
     }
 
     @available(*, unavailable)
@@ -321,8 +430,39 @@ private final class IslandTrackingHostingView<Content: View>: NSHostingView<Cont
         onCommit()
     }
 
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard canAcceptFiles(), fileURLs(from: sender).isEmpty == false else {
+            return []
+        }
+
+        onDragEntered()
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        onDragExited()
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let urls = canAcceptFiles() ? fileURLs(from: sender) : []
+        guard urls.isEmpty == false else {
+            onDragExited()
+            return false
+        }
+
+        onFilesDropped(urls)
+        return true
+    }
+
     @objc private func onHoverTimerFired() {
         hoverTimer = nil
         onHoverEntered()
+    }
+
+    private func fileURLs(from sender: NSDraggingInfo) -> [URL] {
+        sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] ?? []
     }
 }

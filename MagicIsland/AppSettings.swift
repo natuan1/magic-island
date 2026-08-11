@@ -3,6 +3,7 @@ import Foundation
 
 enum FeatureID: String, CaseIterable, Equatable, Identifiable {
     case media
+    case fileShelf
 
     var id: String { rawValue }
 
@@ -10,12 +11,14 @@ enum FeatureID: String, CaseIterable, Equatable, Identifiable {
         switch self {
         case .media:
             return "Media"
+        case .fileShelf:
+            return "File Shelf"
         }
     }
 
     var isEnabledByDefault: Bool {
         switch self {
-        case .media:
+        case .media, .fileShelf:
             return true
         }
     }

@@ -31,6 +31,8 @@
 		3A0000020000000000000004 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000020000000000000014 /* SettingsStoreTests.swift */; };
 		3A0000020000000000000005 /* FeatureLifecycleControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000020000000000000015 /* FeatureLifecycleControllerTests.swift */; };
 		3A0000020000000000000006 /* ScreenDisplayID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000020000000000000016 /* ScreenDisplayID.swift */; };
+		3A0000030000000000000001 /* FileShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000030000000000000011 /* FileShelf.swift */; };
+		3A0000030000000000000002 /* FileShelfStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0000030000000000000012 /* FileShelfStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +72,8 @@
 		3A0000020000000000000014 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		3A0000020000000000000015 /* FeatureLifecycleControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureLifecycleControllerTests.swift; sourceTree = "<group>"; };
 		3A0000020000000000000016 /* ScreenDisplayID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenDisplayID.swift; sourceTree = "<group>"; };
+		3A0000030000000000000011 /* FileShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelf.swift; sourceTree = "<group>"; };
+		3A0000030000000000000012 /* FileShelfStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelfStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +120,7 @@
 				3A0000010000000000000049 /* ActivityEngine.swift */,
 				3A0000010000000000000051 /* SampleFeature.swift */,
 				3A0000010000000000000053 /* MediaFeature.swift */,
+				3A0000030000000000000011 /* FileShelf.swift */,
 				3A0000010000000000000045 /* IslandDisplaySelection.swift */,
 				3A0000010000000000000017 /* IslandPlacement.swift */,
 				3A0000010000000000000046 /* IslandInteractionController.swift */,
@@ -135,6 +140,7 @@
 				3A0000010000000000000057 /* MediaFeatureTests.swift */,
 				3A0000020000000000000014 /* SettingsStoreTests.swift */,
 				3A0000020000000000000015 /* FeatureLifecycleControllerTests.swift */,
+				3A0000030000000000000012 /* FileShelfStoreTests.swift */,
 			);
 			path = MagicIslandTests;
 			sourceTree = "<group>";
@@ -265,6 +271,7 @@
 				3A000001000000000000001F /* ActivityEngine.swift in Sources */,
 				3A0000010000000000000050 /* SampleFeature.swift in Sources */,
 				3A0000010000000000000052 /* MediaFeature.swift in Sources */,
+				3A0000030000000000000001 /* FileShelf.swift in Sources */,
 				3A000001000000000000001B /* IslandDisplaySelection.swift in Sources */,
 				3A0000010000000000000006 /* IslandPlacement.swift in Sources */,
 				3A000001000000000000001C /* IslandInteractionController.swift in Sources */,
@@ -284,6 +291,7 @@
 				3A0000010000000000000056 /* MediaFeatureTests.swift in Sources */,
 				3A0000020000000000000004 /* SettingsStoreTests.swift in Sources */,
 				3A0000020000000000000005 /* FeatureLifecycleControllerTests.swift in Sources */,
+				3A0000030000000000000002 /* FileShelfStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

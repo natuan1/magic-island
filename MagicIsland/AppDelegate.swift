@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var activityEngine = ActivityEngine()
     private let settingsStore = SettingsStore()
     private var featureLifecycleController: FeatureLifecycleController?
+    private let fileShelfStore = FileShelfStore()
     private var mediaFeature = MediaFeature(provider: SpotifyMediaProvider())
     private var mediaRefreshTimer: Timer?
 
@@ -32,6 +33,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             mediaCommandHandler: { [weak self] command in
                 self?.performMediaCommand(command)
+            },
+            fileShelfItemsProvider: { [weak self] in
+                self?.fileShelfStore.items ?? []
+            },
+            fileDropHandler: { [weak self] urls in
+                self?.addFilesToShelf(urls)
+            },
+            shelfRevealHandler: { [weak self] itemID in
+                self?.revealShelfItem(itemID)
             }
         )
         islandWindowController?.show()
@@ -103,6 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch featureID {
         case .media:
             startMediaRefresh()
+        case .fileShelf:
+            break
         }
     }
 
@@ -110,7 +122,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch featureID {
         case .media:
             stopMediaRefresh()
+        case .fileShelf:
+            break
         }
+    }
+
+    private func addFilesToShelf(_ urls: [URL]) {
+        guard settingsStore.isFeatureEnabled(.fileShelf) else {
+            return
+        }
+
+        fileShelfStore.addFileReferences(urls)
+        islandWindowController?.showFileShelf()
+    }
+
+    private func revealShelfItem(_ itemID: UUID) {
+        guard let item = fileShelfStore.item(id: itemID),
+              item.isAvailable() else {
+            return
+        }
+
+        NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
     @objc private func refreshMediaTimerFired() {
