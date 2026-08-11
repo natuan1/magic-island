@@ -99,12 +99,7 @@ struct PermissionCenter {
                 settingsStore.setFeature(featureID, enabled: false)
                 return false
             case .notDetermined:
-                let requestedState = authorizer.requestGrant(for: permissionID)
-                settingsStore.setPermissionGrantState(permissionID, requestedState)
-                guard requestedState == .granted else {
-                    settingsStore.setFeature(featureID, enabled: false)
-                    return false
-                }
+                settingsStore.setPermissionGrantState(permissionID, .notDetermined)
             }
         }
 
