@@ -24,5 +24,7 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Magic Island uses Automation only when you enable the Media Feature to control Spotify playback and read the current track.</string>
 </dict>
 </plist>

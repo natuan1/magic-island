@@ -131,26 +131,31 @@ private struct SettingsView: View {
                 .onChange(of: mediaEnabled) { _, value in
                     settingsStore.setFeature(.media, enabled: value)
                     onSettingsChanged()
+                    refreshFeatureToggles()
                 }
             Toggle("File Shelf", isOn: $fileShelfEnabled)
                 .onChange(of: fileShelfEnabled) { _, value in
                     settingsStore.setFeature(.fileShelf, enabled: value)
                     onSettingsChanged()
+                    refreshFeatureToggles()
                 }
             Toggle("Clipboard History", isOn: $clipboardHistoryEnabled)
                 .onChange(of: clipboardHistoryEnabled) { _, value in
                     settingsStore.setFeature(.clipboardHistory, enabled: value)
                     onSettingsChanged()
+                    refreshFeatureToggles()
                 }
             Toggle("Timer", isOn: $timerEnabled)
                 .onChange(of: timerEnabled) { _, value in
                     settingsStore.setFeature(.timer, enabled: value)
                     onSettingsChanged()
+                    refreshFeatureToggles()
                 }
             Toggle("Quick Actions", isOn: $quickActionsEnabled)
                 .onChange(of: quickActionsEnabled) { _, value in
                     settingsStore.setFeature(.quickActions, enabled: value)
                     onSettingsChanged()
+                    refreshFeatureToggles()
                 }
         }
     }
@@ -221,13 +226,45 @@ private struct SettingsView: View {
     }
 
     private var permissionSection: some View {
-        Button("Permission Status") {}
-            .disabled(true)
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Permission Center")
+            ForEach(PermissionCenter.items(settingsStore: settingsStore)) { item in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                    Text(item.title)
+                        .font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                        Text(item.state.title)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(item.state == .granted ? .green : .secondary)
+                            .help(item.stateDescription)
+                    }
+                    Text("\(item.featureID.title): \(item.purpose)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(item.revokeGuidance)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(item.title), \(item.state.title), \(item.featureID.title). \(item.purpose) Revoke in \(item.revokeGuidance)")
+            }
+        }
     }
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(.secondary)
+    }
+
+    private func refreshFeatureToggles() {
+        mediaEnabled = settingsStore.isFeatureEnabled(.media)
+        fileShelfEnabled = settingsStore.isFeatureEnabled(.fileShelf)
+        clipboardHistoryEnabled = settingsStore.isFeatureEnabled(.clipboardHistory)
+        timerEnabled = settingsStore.isFeatureEnabled(.timer)
+        quickActionsEnabled = settingsStore.isFeatureEnabled(.quickActions)
     }
 }

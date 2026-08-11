@@ -30,7 +30,7 @@ final class SettingsStoreTests: XCTestCase {
         let defaults = makeDefaults()
         let store = SettingsStore(defaults: defaults)
 
-        XCTAssertTrue(store.isFeatureEnabled(.media))
+        XCTAssertFalse(store.isFeatureEnabled(.media))
         XCTAssertTrue(store.isFeatureEnabled(.fileShelf))
         XCTAssertTrue(store.isFeatureEnabled(.timer))
         XCTAssertTrue(store.isFeatureEnabled(.quickActions))
@@ -39,6 +39,17 @@ final class SettingsStoreTests: XCTestCase {
         store.setFeature(.media, enabled: false)
 
         XCTAssertFalse(SettingsStore(defaults: defaults).isFeatureEnabled(.media))
+    }
+
+    func testPermissionGrantStateDefaultsAndPersists() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.permissionGrantState(.spotifyAutomation), .notDetermined)
+
+        store.setPermissionGrantState(.spotifyAutomation, .denied)
+
+        XCTAssertEqual(SettingsStore(defaults: defaults).permissionGrantState(.spotifyAutomation), .denied)
     }
 
     private func makeDefaults() -> UserDefaults {
