@@ -10,9 +10,17 @@ struct ExpandedIslandKeyboardControl: Equatable {
         case homeNavigation
     }
 
+    enum Activation: Equatable {
+        case media(MediaCommand)
+        case timer(TimerCommand)
+        case quickAction(QuickActionID, QuickActionContext)
+        case deleteClipboardItem(UUID)
+        case home(HomeDestination)
+    }
+
     let group: Group
     let accessibilityLabel: String
-    let activationDescription: String
+    let activation: Activation
 }
 
 enum ExpandedIslandKeyboardNavigation {
@@ -34,9 +42,20 @@ enum ExpandedIslandKeyboardNavigation {
             ExpandedIslandKeyboardControl(
                 group: .homeNavigation,
                 accessibilityLabel: $0.title,
-                activationDescription: "Open \($0.title)"
+                activation: .home($0)
             )
         }
+    }
+
+    static func sortPriority(
+        for activation: ExpandedIslandKeyboardControl.Activation,
+        in controls: [ExpandedIslandKeyboardControl]
+    ) -> Double {
+        guard let index = controls.firstIndex(where: { $0.activation == activation }) else {
+            return 0
+        }
+
+        return Double(controls.count - index)
     }
 
     private static func detailControls(
@@ -57,7 +76,7 @@ enum ExpandedIslandKeyboardNavigation {
                     ExpandedIslandKeyboardControl(
                         group: .fileShelf,
                         accessibilityLabel: $0.title,
-                        activationDescription: "\($0.title) \(item.name)"
+                        activation: .quickAction($0.id, .shelf(item))
                     )
                 }
             }
@@ -67,13 +86,13 @@ enum ExpandedIslandKeyboardNavigation {
                     ExpandedIslandKeyboardControl(
                         group: .clipboardHistory,
                         accessibilityLabel: $0.title,
-                        activationDescription: "\($0.title) \(item.title)"
+                        activation: .quickAction($0.id, .clipboard(item))
                     )
                 } + [
                     ExpandedIslandKeyboardControl(
                         group: .clipboardHistory,
                         accessibilityLabel: "Delete \(item.title)",
-                        activationDescription: "Delete clipboard item"
+                        activation: .deleteClipboardItem(item.id)
                     )
                 ]
             }
@@ -95,16 +114,16 @@ enum ExpandedIslandKeyboardNavigation {
         case .media(let media):
             var controls: [ExpandedIslandKeyboardControl] = []
             if media.supportedControls.contains(.previous) {
-                controls.append(mediaControl(label: MediaCommand.previous.accessibilityLabel, activation: "Previous track"))
+                controls.append(mediaControl(label: MediaCommand.previous.accessibilityLabel, activation: .previous))
             }
             if media.supportedControls.contains(.playPause) {
-                controls.append(mediaControl(label: MediaCommand.playPause.accessibilityLabel, activation: "Play or pause media"))
+                controls.append(mediaControl(label: MediaCommand.playPause.accessibilityLabel, activation: .playPause))
             }
             if media.supportedControls.contains(.next) {
-                controls.append(mediaControl(label: MediaCommand.next.accessibilityLabel, activation: "Next track"))
+                controls.append(mediaControl(label: MediaCommand.next.accessibilityLabel, activation: .next))
             }
             if media.supportedControls.contains(.seek) {
-                controls.append(mediaControl(label: "Seek forward 15 seconds", activation: "Seek media forward"))
+                controls.append(mediaControl(label: "Seek forward 15 seconds", activation: .seek(15)))
             }
             return controls
         case .timer:
@@ -119,7 +138,7 @@ enum ExpandedIslandKeyboardNavigation {
                 ExpandedIslandKeyboardControl(
                     group: .timer,
                     accessibilityLabel: "Start \($0) minute timer",
-                    activationDescription: "Start timer"
+                    activation: .timer(.start(TimeInterval($0 * 60)))
                 )
             }
         }
@@ -138,19 +157,19 @@ enum ExpandedIslandKeyboardNavigation {
             ExpandedIslandKeyboardControl(
                 group: .timer,
                 accessibilityLabel: $0.accessibilityLabel,
-                activationDescription: $0.accessibilityLabel
+                activation: .timer($0)
             )
         }
     }
 
     private static func mediaControl(
         label: String,
-        activation: String
+        activation: MediaCommand
     ) -> ExpandedIslandKeyboardControl {
         ExpandedIslandKeyboardControl(
             group: .media,
             accessibilityLabel: label,
-            activationDescription: activation
+            activation: .media(activation)
         )
     }
 }
@@ -399,6 +418,7 @@ struct IslandPlaceholderView: View {
         .background(.white.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .accessibilityLabel("Start \(title) timer")
+        .accessibilitySortPriority(keyboardSortPriority(for: .timer(.start(duration))))
     }
 
     private var fileShelfDetail: some View {
@@ -522,6 +542,7 @@ struct IslandPlaceholderView: View {
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .help("Delete")
             .accessibilityLabel("Delete \(item.title)")
+            .accessibilitySortPriority(keyboardSortPriority(for: .deleteClipboardItem(item.id)))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -544,6 +565,7 @@ struct IslandPlaceholderView: View {
                 .disabled(!isEnabled)
                 .help(action.title)
                 .accessibilityLabel(action.title)
+                .accessibilitySortPriority(keyboardSortPriority(for: .quickAction(action.id, context)))
             }
         }
     }
@@ -648,6 +670,7 @@ struct IslandPlaceholderView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .help(command.accessibilityLabel)
         .accessibilityLabel(command.accessibilityLabel)
+        .accessibilitySortPriority(keyboardSortPriority(for: .timer(command)))
     }
 
     private func artwork(for media: MediaActivity) -> some View {
@@ -686,6 +709,7 @@ struct IslandPlaceholderView: View {
         .disabled(!isEnabled)
         .help(command.accessibilityLabel)
         .accessibilityLabel(command.accessibilityLabel)
+        .accessibilitySortPriority(keyboardSortPriority(for: .media(command)))
     }
 
     private func mediaProgress(_ media: MediaActivity) -> some View {
@@ -711,6 +735,7 @@ struct IslandPlaceholderView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Seek forward 15 seconds")
+        .accessibilitySortPriority(keyboardSortPriority(for: .media(.seek(15))))
     }
 
     private var homeNavigation: some View {
@@ -748,6 +773,23 @@ struct IslandPlaceholderView: View {
         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         .help(destination.title)
         .accessibilityLabel(destination.title)
+        .accessibilitySortPriority(keyboardSortPriority(for: .home(destination)))
+    }
+
+    private func keyboardSortPriority(for activation: ExpandedIslandKeyboardControl.Activation) -> Double {
+        guard case .expanded(let anchor) = presentation else {
+            return 0
+        }
+
+        let controls = ExpandedIslandKeyboardNavigation.controls(
+            anchor: anchor,
+            selectedHomeDestination: selectedHomeDestination,
+            availableHomeDestinations: availableHomeDestinations,
+            fileShelfItems: fileShelfItems,
+            clipboardItems: clipboardItems,
+            quickActionsProvider: quickActionsProvider
+        )
+        return ExpandedIslandKeyboardNavigation.sortPriority(for: activation, in: controls)
     }
 
     private func title(for anchor: IslandExpansionAnchor) -> String {

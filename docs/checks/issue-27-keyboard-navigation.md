@@ -4,9 +4,9 @@ Date: 2026-08-11
 
 Automated coverage:
 
-- `IslandInteractionControllerTests.testExpandedMediaKeyboardControlsFollowTransportOrderBeforeHomeNavigation` verifies Media keyboard order: Previous track, Play or pause media, Next track, Seek forward 15 seconds, then Home navigation.
-- `IslandInteractionControllerTests.testExpandedTimerKeyboardControlsCoverStartAndRunningStates` verifies Timer start controls and running controls: Pause timer, Restart timer, Cancel timer, Close timer.
-- `IslandInteractionControllerTests.testExpandedFileShelfAndClipboardKeyboardControlsExposeQuickActionsAndDeletes` verifies File Shelf quick actions and Clipboard quick actions/delete before Home navigation.
+- `IslandInteractionControllerTests.testExpandedMediaKeyboardControlsFollowTransportOrderBeforeHomeNavigation` verifies Media keyboard order and activation identities: Previous track, Play or pause media, Next track, Seek forward 15 seconds, then Home navigation. The same model drives SwiftUI accessibility sort priority.
+- `IslandInteractionControllerTests.testExpandedTimerKeyboardControlsCoverStartAndRunningStates` verifies Timer start controls, running controls, and their activation identities. The same model drives SwiftUI accessibility sort priority.
+- `IslandInteractionControllerTests.testExpandedFileShelfAndClipboardKeyboardControlsExposeQuickActionsAndDeletes` verifies File Shelf quick actions, Clipboard quick actions/delete, and their activation identities before Home navigation. The same model drives SwiftUI accessibility sort priority.
 - `IslandInteractionControllerTests.testPermissionCenterRowsExposeSingleKeyboardReadableLabel` verifies Permission Center rows expose one readable keyboard/VoiceOver label with state, feature, purpose, and revoke guidance.
 - `IslandInteractionControllerTests.testRepeatedExpandCollapseReturnsToPassiveWithoutAccumulatingState` keeps repeated expand/collapse covered so the Island returns to passive focus behavior.
 

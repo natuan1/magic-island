@@ -144,6 +144,16 @@ final class IslandInteractionControllerTests: XCTestCase {
             "Timer",
             "Settings"
         ])
+        XCTAssertEqual(controls.map(\.activation).prefix(4), [
+            .media(.previous),
+            .media(.playPause),
+            .media(.next),
+            .media(.seek(15))
+        ])
+        XCTAssertGreaterThan(
+            ExpandedIslandKeyboardNavigation.sortPriority(for: .media(.previous), in: controls),
+            ExpandedIslandKeyboardNavigation.sortPriority(for: .media(.playPause), in: controls)
+        )
         XCTAssertEqual(controls.map(\.group).prefix(4), [.media, .media, .media, .media])
     }
 
@@ -164,6 +174,11 @@ final class IslandInteractionControllerTests: XCTestCase {
             "Timer",
             "Settings"
         ])
+        XCTAssertEqual(startControls.map(\.activation).prefix(3), [
+            .timer(.start(5 * 60)),
+            .timer(.start(10 * 60)),
+            .timer(.start(25 * 60))
+        ])
 
         let runningControls = ExpandedIslandKeyboardNavigation.controls(
             anchor: .currentActivity(timerActivity(state: .running)),
@@ -181,6 +196,12 @@ final class IslandInteractionControllerTests: XCTestCase {
             "Close timer",
             "Timer",
             "Settings"
+        ])
+        XCTAssertEqual(runningControls.map(\.activation).prefix(4), [
+            .timer(.pause),
+            .timer(.restart),
+            .timer(.cancel),
+            .timer(.close)
         ])
     }
 
@@ -217,6 +238,10 @@ final class IslandInteractionControllerTests: XCTestCase {
             "File Shelf",
             "Settings"
         ])
+        XCTAssertEqual(shelfControls.map(\.activation).prefix(2), [
+            .quickAction(.openFile, .shelf(shelfItem)),
+            .quickAction(.previewFile, .shelf(shelfItem))
+        ])
 
         let clipboardControls = ExpandedIslandKeyboardNavigation.controls(
             anchor: .idlePlaceholder,
@@ -233,6 +258,11 @@ final class IslandInteractionControllerTests: XCTestCase {
             "Delete Deploy notes",
             "Clipboard History",
             "Settings"
+        ])
+        XCTAssertEqual(clipboardControls.map(\.activation).prefix(3), [
+            .quickAction(.copyText, .clipboard(clipboardItem)),
+            .quickAction(.searchText, .clipboard(clipboardItem)),
+            .deleteClipboardItem(clipboardItem.id)
         ])
     }
 
