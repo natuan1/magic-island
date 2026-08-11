@@ -22,19 +22,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ])
     private let quickActionEnvironment = MacQuickActionEnvironment()
     private lazy var quickActionExecutor = QuickActionExecutor(environment: quickActionEnvironment)
+    private let launchAtLoginCoordinator = LaunchAtLoginCoordinator(controller: NativeLaunchAtLoginController())
+    private let updaterRunner = UpdaterRunner(updater: SparkleApplicationUpdater())
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         featureLifecycleController = FeatureLifecycleController(settingsStore: settingsStore)
         statusBarController = StatusBarController(
+            model: statusBarMenuModel(),
+            onShowIsland: { [weak self] in
+                self?.showIsland()
+            },
+            onOpenFeature: { [weak self] featureID in
+                self?.showFeature(featureID)
+            },
             onOpenSettings: { [weak self] in
                 self?.openSettings()
+            },
+            onCheckUpdates: { [weak self] in
+                self?.checkForUpdates()
             }
         )
         settingsWindowController = SettingsWindowController(
             settingsStore: settingsStore,
             onSettingsChanged: { [weak self] in
                 self?.settingsChanged()
+            },
+            onCheckUpdates: { [weak self] in
+                self?.checkForUpdates()
             }
         )
         islandWindowController = IslandWindowController(
@@ -194,9 +209,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindowController?.show()
     }
 
+    private func showIsland() {
+        islandWindowController?.show()
+        islandWindowController?.refreshCurrentActivity()
+    }
+
+    private func showFeature(_ featureID: FeatureID) {
+        islandWindowController?.showFeature(featureID)
+    }
+
+    private func checkForUpdates() {
+        let result = updaterRunner.checkForUpdates()
+        let alert = NSAlert()
+        alert.messageText = "Updates"
+        alert.informativeText = result.message
+        alert.runModal()
+    }
+
     private func settingsChanged() {
         syncFeatureLifecycles()
+        applyLaunchAtLogin()
         applyClipboardRetention()
+        statusBarController?.updateMenu(statusBarMenuModel())
         islandWindowController?.settingsChanged()
         islandWindowController?.refreshCurrentActivity()
     }
@@ -207,6 +241,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         islandWindowController?.refreshCurrentActivity()
+    }
+
+    private func applyLaunchAtLogin() {
+        let desiredValue = settingsStore.launchAtLoginEnabled
+        guard !launchAtLoginCoordinator.setEnabled(desiredValue) else {
+            return
+        }
+
+        settingsStore.launchAtLoginEnabled = !desiredValue
+        let alert = NSAlert()
+        alert.messageText = "Launch at Login"
+        alert.informativeText = "Could not update login item."
+        alert.runModal()
+    }
+
+    private func statusBarMenuModel() -> StatusBarMenuModel {
+        StatusBarMenuModel.core(featureIDs: [.media, .fileShelf, .clipboardHistory].filter {
+            settingsStore.isFeatureEnabled($0)
+        })
     }
 
     private func syncFeatureLifecycles() {

@@ -65,6 +65,8 @@ final class SettingsStore {
         static let hoverDelay = "settings.hoverDelay"
         static let displayPreference = "settings.displayPreference"
         static let clipboardRetentionDays = "settings.clipboardRetentionDays"
+        static let launchAtLoginEnabled = "settings.launchAtLoginEnabled"
+        static let expansionShortcut = "settings.expansionShortcut"
 
         static func featureEnabled(_ featureID: FeatureID) -> String {
             "settings.feature.\(featureID.rawValue).enabled"
@@ -109,6 +111,24 @@ final class SettingsStore {
         }
         set {
             defaults.set(max(1, newValue), forKey: Key.clipboardRetentionDays)
+        }
+    }
+
+    var launchAtLoginEnabled: Bool {
+        get {
+            defaults.bool(forKey: Key.launchAtLoginEnabled)
+        }
+        set {
+            defaults.set(newValue, forKey: Key.launchAtLoginEnabled)
+        }
+    }
+
+    var expansionShortcut: ExpansionShortcut {
+        get {
+            ExpansionShortcut(rawValue: defaults.string(forKey: Key.expansionShortcut) ?? "") ?? .commandOptionSpace
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: Key.expansionShortcut)
         }
     }
 
