@@ -10,10 +10,28 @@ struct DisplaySafeAreaInsets: Equatable {
 }
 
 struct IslandDisplayDescriptor: Equatable {
+    let id: UInt32?
     let frame: CGRect
+    let visibleFrame: CGRect
     let safeAreaInsets: DisplaySafeAreaInsets
     let auxiliaryTopLeftArea: CGRect
     let auxiliaryTopRightArea: CGRect
+
+    init(
+        id: UInt32? = nil,
+        frame: CGRect,
+        visibleFrame: CGRect? = nil,
+        safeAreaInsets: DisplaySafeAreaInsets,
+        auxiliaryTopLeftArea: CGRect,
+        auxiliaryTopRightArea: CGRect
+    ) {
+        self.id = id
+        self.frame = frame
+        self.visibleFrame = visibleFrame ?? frame
+        self.safeAreaInsets = safeAreaInsets
+        self.auxiliaryTopLeftArea = auxiliaryTopLeftArea
+        self.auxiliaryTopRightArea = auxiliaryTopRightArea
+    }
 }
 
 enum IslandGeometryKind: Equatable {
@@ -46,6 +64,26 @@ enum IslandPlacement {
         islandSize: CGSize
     ) -> CGRect {
         floatingIslandFrame(in: displayFrame, islandSize: islandSize)
+    }
+
+    static func clampedFrame(_ frame: CGRect, to bounds: CGRect) -> CGRect {
+        guard !bounds.isEmpty else {
+            return frame
+        }
+
+        let width = min(frame.width, bounds.width)
+        let height = min(frame.height, bounds.height)
+        let minX = bounds.minX
+        let maxX = bounds.maxX - width
+        let minY = bounds.minY
+        let maxY = bounds.maxY - height
+
+        return CGRect(
+            x: min(max(frame.minX, minX), maxX),
+            y: min(max(frame.minY, minY), maxY),
+            width: width,
+            height: height
+        )
     }
 
     private static func floatingIslandFrame(
