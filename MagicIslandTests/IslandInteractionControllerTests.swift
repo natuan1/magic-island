@@ -279,7 +279,7 @@ final class IslandInteractionControllerTests: XCTestCase {
 
         XCTAssertEqual(
             item.keyboardAccessibilityLabel,
-            "Spotify Automation, Not Requested, Media. Control Spotify playback and read the current track for the Media Feature. Revoke in System Settings > Privacy & Security > Automation > Magic Island > Spotify"
+            "Spotify Automation, Unknown / Not Requested, Media. Control Spotify playback and read the current track for the Media Feature. Revoke in System Settings > Privacy & Security > Automation > Magic Island > Spotify"
         )
     }
 

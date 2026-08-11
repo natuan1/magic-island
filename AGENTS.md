@@ -24,6 +24,7 @@ Speak Vietnamese with me ! and alway use caveman
 - For app-owned repeating `Timer`s under Swift 6, prefer target/selector timers over closure timers that capture `self`.
 - When invalidating AppKit-owned `Timer`s from `deinit` under Swift 6, account for nonisolated deinitializers before the first build.
 - When AppDelegate starts feature lifecycles, skip background macOS integrations under `XCTestConfigurationFilePath` so unit test hosts do not poll AppleScript, pasteboard, or permissions.
+- After resolving merge conflicts between branches that both touch visible permission or accessibility strings, run the affected focused test before the full suite.
 
 ## Agent skills
 
